@@ -10,8 +10,12 @@ def plot_tree (commit)
   else
     $commits[commit.id] = 1
     commit.parents.each do |c|
-      puts "\"#{commit.message}\" -> \"#{commit.id.slice 0,7}\" [arrowhead=dot, color= lightgray, arrowtail=vee];"
-      puts "\"#{commit.message}\" [shape=box, fontname=courier, fontsize = 8, color=lightgray, fontcolor=lightgray];"
+      print "\""
+      print commit.message.gsub(%r|\n|, "\\n")
+      puts "\" -> \"#{commit.id.slice 0,7}\" [arrowhead=dot, color= lightgray, arrowtail=vee];"
+      print "\""
+      print commit.message.gsub(%r|\n|, "\\n")
+      puts "\" [shape=box, fontname=courier, fontsize = 8, color=lightgray, fontcolor=lightgray];"
       puts "\"#{commit.id.slice 0,7}\" -> \"#{c.id.slice 0,7}\";"
       plot_tree(c)
     end
