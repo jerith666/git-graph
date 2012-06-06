@@ -6,13 +6,10 @@ $commits = {}
 
 def find_children (commit, children)
   commit.parents.each do |c|
-    puts "proc #{c} -> #{commit}"
     if children.has_key? c.id
-      puts "found #{c}"
-      children[c.id].push [commit.id]
+      children[c.id].push [commit]
     else
-      puts "new #{c}"
-      children[c.id] = [commit.id]
+      children[c.id] = [commit]
     end
     find_children(c, children)
   end
@@ -36,6 +33,42 @@ def plot_tree (commit)
   end
 end
 
+def is_interesting(commit, children, neighbor=0)
+  if commit.parents.length > 1
+    return true
+  end
+  if children[commit.id].length > 1
+    return true
+  end
+  if neighbor <= 0
+    return false
+  end
+  commit.parents.each do |p|
+    if is_interesting(p, children, neighbor - 1)
+      return true
+    end
+  end
+  children[commit.id].each do |c|
+    if is_interesting(c, children, neighbor - 1)
+      return true
+    end
+  end
+  return false
+end
+
+def show_interesting(commit, children, shown={})
+  if shown.has_key? commit.id
+    return
+  end
+  if is_interesting(commit, children)
+    puts commit.id
+    shown[commit.id] = true
+  end
+  commit.parents.each do |p|
+    show_interesting(p, children, shown)
+  end
+end
+
 def plot_tags(repo)
   repo.tags.each do |tag|
     puts "\"#{tag.name}\" -> \"#{tag.commit.id.slice 0,7}\";"
@@ -48,20 +81,13 @@ end
 repo = Grit::Repo.new(ARGV[0]);
 children = {}
 repo.branches.each do |b| 
-  puts "branch #{b.name}"
-#  puts "\"#{b.name}\" -> \"#{b.commit.id.slice 0,7}\";"
-#  puts "\"#{b.name}\" [shape=polygon, sides=6, style=filled, color = red];"
-#  plot_tree(b.commit)
   find_children(b.commit, children)
 end
-children.each do |key,value|
-  print "#{key} -> ["
-  value.each do |v|
-    print "#{v}, "
-  end
-  puts "]"
-  #puts "#{key} -> #{value}"
+repo.branches.each do |b| 
+  show_interesting(b.commit, children)
+  #puts "\"#{b.name}\" -> \"#{b.commit.id.slice 0,7}\";"
+  #puts "\"#{b.name}\" [shape=polygon, sides=6, style=filled, color = red];"
+  #plot_tree(b.commit)
 end
-#plot_tags(repo)
 #puts "}"  
   
