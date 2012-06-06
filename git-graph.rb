@@ -4,6 +4,20 @@ require 'grit'
 
 $commits = {}
 
+def find_children (commit, children)
+  commit.parents.each do |c|
+    puts "proc #{c} -> #{commit}"
+    if children.has_key? c.id
+      puts "found #{c}"
+      children[c.id].push [commit.id]
+    else
+      puts "new #{c}"
+      children[c.id] = [commit.id]
+    end
+    find_children(c, children)
+  end
+end
+
 def plot_tree (commit)
   if $commits.has_key? commit.id
     return
@@ -29,14 +43,25 @@ def plot_tags(repo)
   end
 end
 
-puts "Digraph F {"
-puts 'ranksep=0.2;'
+#puts "Digraph F {"
+#puts 'ranksep=0.2;'
 repo = Grit::Repo.new(ARGV[0]);
+children = {}
 repo.branches.each do |b| 
-  puts "\"#{b.name}\" -> \"#{b.commit.id.slice 0,7}\";"
-  puts "\"#{b.name}\" [shape=polygon, sides=6, style=filled, color = red];"
-  plot_tree(b.commit)
+  puts "branch #{b.name}"
+#  puts "\"#{b.name}\" -> \"#{b.commit.id.slice 0,7}\";"
+#  puts "\"#{b.name}\" [shape=polygon, sides=6, style=filled, color = red];"
+#  plot_tree(b.commit)
+  find_children(b.commit, children)
 end
-plot_tags(repo)
-puts "}"  
+children.each do |key,value|
+  print "#{key} -> ["
+  value.each do |v|
+    print "#{v}, "
+  end
+  puts "]"
+  #puts "#{key} -> #{value}"
+end
+#plot_tags(repo)
+#puts "}"  
   
