@@ -15,33 +15,33 @@ def find_children (commit, children)
   end
 end
 
-def plot_tree (commit, children, boring=[], plotted={})
+def plot_tree (commit, children, boring, plotted, decorations)
   if plotted.has_key? commit.id
     return
+  end
+
+  if is_interesting(commit, children, decorations)
+    make_node(commit)
+    boring = []
   else
-    if is_interesting(commit, children)
-      make_node(commit)
+    boring += [commit]
+  end
+
+  commit.parents.each do |c|
+    if is_interesting(c, children, decorations)
+      if is_interesting(commit, children, decorations)
+        make_edge(commit, c)
+      else
+        make_elision(boring, c)
+      end
       boring = []
     else
-      boring += [commit]
+      boring += [c]
     end
 
-    commit.parents.each do |c|
-      if is_interesting(c, children)
-        if is_interesting(commit, children)
-          make_edge(commit, c)
-        else
-          make_elision(boring, c)
-        end
-        boring = []
-      else
-        boring += [c]
-      end
-
-      plot_tree(c, children, boring, plotted)
-    end
-    plotted[commit.id] = true
+    plot_tree(c, children, boring, plotted, decorations)
   end
+  plotted[commit.id] = true
 end
 
 #      print "\""
@@ -52,12 +52,17 @@ end
 #      puts "\" [shape=box, fontname=courier, fontsize = 8, color=lightgray, fontcolor=lightgray];"
 #      puts "\"#{commit.id.slice 0,7}\" -> \"#{c.id.slice 0,7}\";"
 
-def is_interesting(commit, children, neighbor=0)
+def is_interesting(commit, children, decorations, neighbor=0)
   #merge or branch point
   if commit.parents.length > 1
     return true
   end
   if children[commit.id].length > 1
+    return true
+  end
+
+  #decorated
+  if decorations.has_key? commit.id
     return true
   end
 
@@ -67,14 +72,14 @@ def is_interesting(commit, children, neighbor=0)
 
   #parent is interesting
   commit.parents.each do |p|
-    if is_interesting(p, children, neighbor - 1)
+    if is_interesting(p, children, decorations, neighbor - 1)
       return true
     end
   end
 
   #child is interesting
   children[commit.id].each do |c|
-    if is_interesting(c, children, neighbor - 1)
+    if is_interesting(c, children, decorations, neighbor - 1)
       return true
     end
   end
@@ -111,33 +116,33 @@ def make_edge(c1, c2)
 end
 
 def make_elision(boring_commits, interesting_commit)
-  puts "\"#{boring_commits.first.id}\" [label=\"boring: #{boring_commits.first.id.slice 0,7}\"];"
-  puts "\"#{boring_commits.first.id}\" -> \"#{interesting_commit.id}\";"
+  puts "\"elide.#{boring_commits.first.id}\" [label=\"#{boring_commits.size} commits (#{boring_commits.first.id.slice 0,7} .. #{boring_commits.last.id.slice 0,7}\"];"
+  puts "\"elide.#{boring_commits.first.id}\" -> \"#{interesting_commit.id}\";"
 end
 
 repo = Grit::Repo.new(ARGV[0]);
 
 #decorated = (repo.branches + repo.remotes + repo.tags).collect{|r| r.commit}
 decorated = (repo.branches + repo.tags).collect{|r| r.commit}
-d2 = decorated.collect{|c| c.parents}
+d2 = decorated.collect{|c| c.parents} #TODO still necessary?
 
 children = {}
 decorated.each do |c|
   find_children(c, children)
 end
 
+decorations = {}
+repo.branches.each do |b|
+  decorations[b.commit.id] = b
+end
+repo.tags.each do |t|
+  decorations[t.commit.id] = t
+end
+
 puts "Digraph Git {"
 plotted={}
 decorated.each do |c|
-  plot_tree(c, children, [], plotted)
+  plot_tree(c, children, [], plotted, decorations)
   #nodes_for_interesting(c, children)
 end
 puts "}"
-
-#puts "Digraph F {"
-#puts 'ranksep=0.2;'
-  #puts "\"#{b.name}\" -> \"#{b.commit.id.slice 0,7}\";"
-  #puts "\"#{b.name}\" [shape=polygon, sides=6, style=filled, color = red];"
-  #plot_tree(b.commit)
-#puts "}"  
-  
