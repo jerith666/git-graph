@@ -154,12 +154,18 @@ decorated.each do |c|
   find_children(c, children)
 end
 
-decorations = {} #to-do make multi-valued
+decorations = {}
 repo.branches.each do |b|
-  decorations[b.commit.id] = b
+  if not decorations.has_key? b.commit.id
+    decorations[b.commit.id] = []
+  end
+  decorations[b.commit.id].push [b]
 end
 repo.tags.each do |t|
-  decorations[t.commit.id] = t
+  if not decorations.has_key? t.commit.id
+    decorations[t.commit.id] = []
+  end
+  decorations[t.commit.id].push [t]
 end
 
 puts "Digraph Git {"
