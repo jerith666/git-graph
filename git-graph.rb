@@ -46,6 +46,9 @@ def plot_tree (commit, children, boring, plotted, decorations)
 
     plot_tree(c, children, boring, plotted, decorations)
   end
+  if commit.parents.length == 0
+    make_elision(boring, nil)
+  end
   plotted[commit.id] = true
 end
 
@@ -135,7 +138,9 @@ def make_elision(boring_commits, interesting_commit)
   end
 
   puts "\"elide.#{boring_commits.first.id}\" [label=\"#{boring_commits.size} commits\\n(#{boring_commits.first.id.slice 0,7} .. #{boring_commits.last.id.slice 0,7})\"];"
-  puts "\"elide.#{boring_commits.first.id}\" -> \"#{interesting_commit.id}\";"
+  if not interesting_commit.nil?
+    puts "\"elide.#{boring_commits.first.id}\" -> \"#{interesting_commit.id}\";"
+  end
 end
 
 repo = Grit::Repo.new(ARGV[0]);
