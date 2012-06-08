@@ -7,7 +7,8 @@ $commits = {}
 def find_children (commit, children)
   commit.parents.each do |c|
     if children.has_key? c.id
-      if not children[c.id].include? commit
+      if children[c.id].count{|com| com.id == commit.id} == 0
+      #if not children[c.id].include? commit
         children[c.id].push [commit]
       end
     else
@@ -59,14 +60,19 @@ end
 def is_interesting(commit, children, decorations, neighbor=0)
   #merge or branch point
   if commit.parents.length > 1
+    #puts "int true: #{commit.id} mult parents"
     return true
   end
   if children.include? commit.id and children[commit.id].length > 1
+    #puts "int true: #{commit.id} mult children"
+    #puts "int true: #{commit.id} child 1: #{children[commit.id][0]}"
+    #puts "int true: #{commit.id} child 2: #{children[commit.id][2]}"
     return true
   end
 
   #decorated
   if decorations.has_key? commit.id
+    #puts "int true: #{commit.id} decorated: #{decorations[commit.id]}"
     return true
   end
 
@@ -128,7 +134,7 @@ def make_elision(boring_commits, interesting_commit)
     return
   end
 
-  puts "\"elide.#{boring_commits.first.id}\" [label=\"#{boring_commits.size} commits (#{boring_commits.first.id.slice 0,7} .. #{boring_commits.last.id.slice 0,7}\"];"
+  puts "\"elide.#{boring_commits.first.id}\" [label=\"#{boring_commits.size} commits\\n(#{boring_commits.first.id.slice 0,7} .. #{boring_commits.last.id.slice 0,7})\"];"
   puts "\"elide.#{boring_commits.first.id}\" -> \"#{interesting_commit.id}\";"
 end
 
