@@ -6,13 +6,11 @@ $commits = {}
 
 def find_children (commit, children)
   commit.parents.each do |c|
-    if children.has_key? c.id
-      if children[c.id].count{|com| com.id == commit.id} == 0
-      #if not children[c.id].include? commit
-        children[c.id].push [commit]
-      end
-    else
-      children[c.id] = [commit]
+    if not children.has_key? c.id
+      children[c.id] = []
+    end
+    if children[c.id].count{|com| com.id == commit.id} == 0
+      children[c.id].push commit
     end
     find_children(c, children)
   end
