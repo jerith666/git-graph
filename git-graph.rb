@@ -7,7 +7,9 @@ $commits = {}
 def find_children (commit, children)
   commit.parents.each do |c|
     if children.has_key? c.id
-      children[c.id].push [commit]
+      if not children[c.id].include? commit
+        children[c.id].push [commit]
+      end
     else
       children[c.id] = [commit]
     end
@@ -59,7 +61,7 @@ def is_interesting(commit, children, decorations, neighbor=0)
   if commit.parents.length > 1
     return true
   end
-  if children[commit.id].length > 1
+  if children.include? commit.id and children[commit.id].length > 1
     return true
   end
 
@@ -133,15 +135,15 @@ end
 repo = Grit::Repo.new(ARGV[0]);
 
 #decorated = (repo.branches + repo.remotes + repo.tags).collect{|r| r.commit}
+#d2 = decorated.collect{|c| c.parents} #TODO still necessary?
 decorated = (repo.branches + repo.tags).collect{|r| r.commit}
-d2 = decorated.collect{|c| c.parents} #TODO still necessary?
 
 children = {}
 decorated.each do |c|
   find_children(c, children)
 end
 
-decorations = {}
+decorations = {} #to-do make multi-valued
 repo.branches.each do |b|
   decorations[b.commit.id] = b
 end
