@@ -113,12 +113,12 @@ def nodes_for_interesting(commit, children, shown={})
   end
 end
 
-def plot_tags(repo)
-  repo.tags.each do |tag|
-    puts "\"#{tag.name}\" -> \"#{tag.commit.id.slice 0,7}\";"
-    puts "\"#{tag.name}\" [shape=box, style=filled, color = yellow];"
-  end
-end
+#def plot_tags(repo)
+#  repo.tags.each do |tag|
+#    puts "\"#{tag.name}\" -> \"#{tag.commit.id.slice 0,7}\";"
+#    puts "\"#{tag.name}\" [shape=box, style=filled, color = yellow];"
+#  end
+#end
 
 def make_node(commit, decorations)
   label = commit.id.slice 0,7
@@ -130,11 +130,11 @@ def make_node(commit, decorations)
 end
 
 def make_edge(c1, c2)
-  puts "\"#{c1.id}\" -> \"#{c2.id}\";"
+  puts "\"#{c2.id}\" -> \"#{c1.id}\";"
 end
 
 def make_edge_to_elision(commit, first_boring)
-  puts "\"#{commit.id}\" -> \"elide.#{first_boring.id}\";"
+  puts "\"elide.#{first_boring.id}\" -> \"#{commit.id}\";"
 end
 
 def make_elision(boring_commits, interesting_commit)
@@ -144,7 +144,7 @@ def make_elision(boring_commits, interesting_commit)
 
   puts "\"elide.#{boring_commits.first.id}\" [label=\"#{boring_commits.size} commits\\n(#{boring_commits.first.id.slice 0,7} .. #{boring_commits.last.id.slice 0,7})\"];"
   if not interesting_commit.nil?
-    puts "\"elide.#{boring_commits.first.id}\" -> \"#{interesting_commit.id}\";"
+    puts "\"#{interesting_commit.id}\" -> \"elide.#{boring_commits.first.id}\";"
   end
 end
 
@@ -173,7 +173,7 @@ repo.tags.each do |t|
   decorations[t.commit.id].push t
 end
 
-puts "Digraph Git {"
+puts "Digraph Git { rankdir=BT;"
 plotted={}
 decorated.each do |c|
   plot_tree(c, children, [], plotted, decorations)
