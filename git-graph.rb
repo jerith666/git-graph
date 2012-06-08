@@ -36,7 +36,9 @@ def plot_tree (commit, children, boring, plotted, decorations)
       end
       boring = []
     else
-      boring += [c]
+      if is_interesting(commit, children, decorations)
+        make_edge_to_elision(commit, c)
+      end
     end
 
     plot_tree(c, children, boring, plotted, decorations)
@@ -115,7 +117,15 @@ def make_edge(c1, c2)
   puts "\"#{c1.id}\" -> \"#{c2.id}\";"
 end
 
+def make_edge_to_elision(commit, first_boring)
+  puts "\"#{commit.id}\" -> \"elide.#{first_boring.id}\";"
+end
+
 def make_elision(boring_commits, interesting_commit)
+  if boring_commits.length <= 0
+    return
+  end
+
   puts "\"elide.#{boring_commits.first.id}\" [label=\"#{boring_commits.size} commits (#{boring_commits.first.id.slice 0,7} .. #{boring_commits.last.id.slice 0,7}\"];"
   puts "\"elide.#{boring_commits.first.id}\" -> \"#{interesting_commit.id}\";"
 end
