@@ -164,13 +164,13 @@ repo.branches.each do |b|
   if not decorations.has_key? b.commit.id
     decorations[b.commit.id] = []
   end
-  decorations[b.commit.id].push [b]
+  decorations[b.commit.id].push b
 end
 repo.tags.each do |t|
   if not decorations.has_key? t.commit.id
     decorations[t.commit.id] = []
   end
-  decorations[t.commit.id].push [t]
+  decorations[t.commit.id].push t
 end
 
 puts "Digraph Git {"
