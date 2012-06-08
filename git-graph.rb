@@ -24,7 +24,7 @@ def plot_tree (commit, children, boring, plotted, decorations)
   end
 
   if is_interesting(commit, children, decorations)
-    make_node(commit)
+    make_node(commit, decorations)
     boring = []
   else
     boring += [commit]
@@ -105,7 +105,7 @@ def nodes_for_interesting(commit, children, shown={})
     return
   end
   if is_interesting(commit, children)
-    make_node(commit)
+    make_node(commit, {})
     shown[commit.id] = true
   end
   commit.parents.each do |p|
