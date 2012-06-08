@@ -4,15 +4,23 @@ require 'grit'
 
 $commits = {}
 
-def find_children (commit, children)
-  commit.parents.each do |c|
-    if not children.has_key? c.id
-      children[c.id] = []
+def find_children (head_commit, children)
+  commits = [head_commit]
+
+  while not commits.empty? do
+    commit = commits.slice! 0
+    commit.parents.each do |c|
+      if not children.has_key? c.id
+        children[c.id] = []
+      end
+
+      if children[c.id].count{|com| com.id == commit.id} == 0
+        children[c.id].push commit
+      end
+
+      #find_children(c, children)
+      commits.push c
     end
-    if children[c.id].count{|com| com.id == commit.id} == 0
-      children[c.id].push commit
-    end
-    find_children(c, children)
   end
 end
 
