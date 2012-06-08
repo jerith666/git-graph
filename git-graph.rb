@@ -120,8 +120,13 @@ def plot_tags(repo)
   end
 end
 
-def make_node(commit)
-  puts "\"#{commit.id}\" [label=\"#{commit.id.slice 0,7}\"];"
+def make_node(commit, decorations)
+  label = commit.id.slice 0,7
+  if decorations.has_key? commit.id
+    label = decorations[commit.id][0].name
+  end
+
+  puts "\"#{commit.id}\" [label=\"#{label}\"];"
 end
 
 def make_edge(c1, c2)
