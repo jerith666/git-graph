@@ -77,14 +77,6 @@ def plot_tree (head_commit, children, boring, plotted, decorations)
   end
 end
 
-#      print "\""
-#      print commit.message.gsub(%r|\n|, "\\n")
-#      puts "\" -> \"#{commit.id.slice 0,7}\" [arrowhead=dot, color= lightgray, arrowtail=vee];"
-#      print "\""
-#      print commit.message.gsub(%r|\n|, "\\n")
-#      puts "\" [shape=box, fontname=courier, fontsize = 8, color=lightgray, fontcolor=lightgray];"
-#      puts "\"#{commit.id.slice 0,7}\" -> \"#{c.id.slice 0,7}\";"
-
 def is_interesting(commit, children, decorations, neighbor=0)
   #merge or branch point
   if commit.parents.length > 1
@@ -144,14 +136,30 @@ end
 #    puts "\"#{tag.name}\" [shape=box, style=filled, color = yellow];"
 #  end
 #end
+#      print "\""
+#      print commit.message.gsub(%r|\n|, "\\n")
+#      puts "\" -> \"#{commit.id.slice 0,7}\" [arrowhead=dot, color= lightgray, arrowtail=vee];"
+#      print "\""
+#      print commit.message.gsub(%r|\n|, "\\n")
+#      puts "\" [shape=box, fontname=courier, fontsize = 8, color=lightgray, fontcolor=lightgray];"
+#      puts "\"#{commit.id.slice 0,7}\" -> \"#{c.id.slice 0,7}\";"
+
+
+def id_for(commit)
+  commit.id.slice 0,6
+end
+
+def small_fixed(str)
+  "<font face=\"courier\" point-size=\"9\">#{str}</font>"
+end  
 
 def make_node(commit, decorations, prefix="")
-  label = commit.id.slice 0,7
+  label = small_fixed id_for commit
   if decorations.has_key? commit.id
-    label = decorations[commit.id].collect{|d| d.name} * "\\n"
+    label = decorations[commit.id].collect{|d| d.name} * "<br/>"
   end
 
-  puts "\"#{prefix}#{commit.id}\" [label=\"#{label}\"];"
+  puts "\"#{prefix}#{commit.id}\" [label=<<font>#{label}</font>>];"
 end
 
 def make_edge(c1, c2)
@@ -170,7 +178,8 @@ def make_elision(boring_commits, interesting_commit)
   if boring_commits.length == 1
     make_node(boring_commits[0], {}, "elide.")
   else
-    puts "\"elide.#{boring_commits.first.id}\" [label=\"#{boring_commits.size} commits\\n(#{boring_commits.first.id.slice 0,7} .. #{boring_commits.last.id.slice 0,7})\"];"
+    rangelbl = small_fixed "#{id_for(boring_commits.first)} .. #{id_for(boring_commits.last)}"
+    puts "\"elide.#{boring_commits.first.id}\" [label=<<font>#{boring_commits.size} commits<br/>#{rangelbl}</font>>];"
   end
 
   if not interesting_commit.nil?
