@@ -1,0 +1,7 @@
+Digraph Test { rankdir=BT;
+
+foo [label=<<font point-size="10">a foo<br/></font>label>]
+bar
+
+foo -> bar
+}
