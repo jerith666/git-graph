@@ -145,13 +145,13 @@ end
 #  end
 #end
 
-def make_node(commit, decorations)
+def make_node(commit, decorations, prefix="")
   label = commit.id.slice 0,7
   if decorations.has_key? commit.id
-    label = decorations[commit.id][0].name
+    label = decorations[commit.id].collect{|d| d.name} * "\\n"
   end
 
-  puts "\"#{commit.id}\" [label=\"#{label}\"];"
+  puts "\"#{prefix}#{commit.id}\" [label=\"#{label}\"];"
 end
 
 def make_edge(c1, c2)
@@ -167,7 +167,12 @@ def make_elision(boring_commits, interesting_commit)
     return
   end
 
-  puts "\"elide.#{boring_commits.first.id}\" [label=\"#{boring_commits.size} commits\\n(#{boring_commits.first.id.slice 0,7} .. #{boring_commits.last.id.slice 0,7})\"];"
+  if boring_commits.length == 1
+    make_node(boring_commits[0], {}, "elide.")
+  else
+    puts "\"elide.#{boring_commits.first.id}\" [label=\"#{boring_commits.size} commits\\n(#{boring_commits.first.id.slice 0,7} .. #{boring_commits.last.id.slice 0,7})\"];"
+  end
+
   if not interesting_commit.nil?
     puts "\"#{interesting_commit.id}\" -> \"elide.#{boring_commits.first.id}\";"
   end
