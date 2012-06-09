@@ -4,9 +4,8 @@ require 'grit'
 
 $commits = {}
 
-def find_children (head_commit, children)
+def find_children (head_commit, children, visited)
   commits = [head_commit]
-  visited = []
 
   while not commits.empty? do
     if children.size > 0 and children.size % 1000 == 0 then
@@ -34,38 +33,48 @@ def find_children (head_commit, children)
   end
 end
 
-def plot_tree (commit, children, boring, plotted, decorations)
-  if plotted.has_key? commit.id
-    return
-  end
+def plot_tree (head_commit, children, boring, plotted, decorations)
+  to_plot = [head_commit]
 
-  if is_interesting(commit, children, decorations)
-    make_node(commit, decorations)
-    boring = []
-  else
-    boring += [commit]
-  end
-
-  commit.parents.each do |c|
-    if is_interesting(c, children, decorations)
-      if is_interesting(commit, children, decorations)
-        make_edge(commit, c)
-      else
-        make_elision(boring, c)
-      end
-      boring = []
-    else
-      if is_interesting(commit, children, decorations)
-        make_edge_to_elision(commit, c)
-      end
+  while not to_plot.empty? do
+    commit = to_plot.slice! 0
+    if plotted.has_key? commit.id
+      next
     end
 
-    plot_tree(c, children, boring, plotted, decorations)
+    if is_interesting(commit, children, decorations)
+      make_node(commit, decorations)
+      boring = []
+    else
+      boring += [commit]
+    end
+
+    parents_to_plot = []
+    commit.parents.each do |c|
+      if is_interesting(c, children, decorations)
+        if is_interesting(commit, children, decorations)
+          make_edge(commit, c)
+        else
+          make_elision(boring, c)
+        end
+        boring = []
+      else
+        if is_interesting(commit, children, decorations)
+          make_edge_to_elision(commit, c)
+        end
+      end
+
+      parents_to_plot.push c
+      #plot_tree(c, children, boring, plotted, decorations)
+    end
+    to_plot = parents_to_plot + to_plot
+
+    if commit.parents.length == 0
+      make_elision(boring, nil)
+    end
+
+    plotted[commit.id] = true
   end
-  if commit.parents.length == 0
-    make_elision(boring, nil)
-  end
-  plotted[commit.id] = true
 end
 
 #      print "\""
@@ -171,18 +180,23 @@ repo = Grit::Repo.new(ARGV[0]);
 decorated = (repo.branches + repo.tags).collect{|r| r.commit}
 
 children = {}
+visited = []
 decorated.each do |c|
-  find_children(c, children)
+  puts "#finding children for #{c.id}"
+  find_children(c, children, visited)
 end
+puts "#done finding children"
 
 decorations = {}
 repo.branches.each do |b|
+  puts "#noting decoration info for branch #{b.name}"
   if not decorations.has_key? b.commit.id
     decorations[b.commit.id] = []
   end
   decorations[b.commit.id].push b
 end
 repo.tags.each do |t|
+  puts "#noting decoration info for tag #{t.name}"
   if not decorations.has_key? t.commit.id
     decorations[t.commit.id] = []
   end
