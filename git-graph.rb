@@ -162,7 +162,6 @@ def smaller(str)
 end
 
 def fmt_decor(d)
-  puts "#format #{d.class}"
   case
     when d.is_a?(Grit::Tag) then color = "gold3"
     when d.is_a?(Grit::Head) then color = "forestgreen"
@@ -181,12 +180,16 @@ def make_node(commit, decorations, prefix="")
   puts "\"#{prefix}#{commit.id}\" [label=<<font>#{label}</font>>];"
 end
 
+def edge_weight(parent, child)
+  1.0 - child.parents.index{|p| p.id == parent.id}.to_f / child.parents.length
+end
+
 def make_edge(c1, c2)
-  puts "\"#{c2.id}\" -> \"#{c1.id}\";"
+  puts "\"#{c2.id}\" -> \"#{c1.id}\" [weight=#{edge_weight(c2, c1)}];"
 end
 
 def make_edge_to_elision(commit, first_boring)
-  puts "\"elide.#{first_boring.id}\" -> \"#{commit.id}\";"
+  puts "\"elide.#{first_boring.id}\" -> \"#{commit.id}\" [weight=#{edge_weight(first_boring,commit)}];"
 end
 
 def make_elision(boring_commits, interesting_commit)
@@ -203,7 +206,7 @@ def make_elision(boring_commits, interesting_commit)
   end
 
   if not interesting_commit.nil?
-    puts "\"#{interesting_commit.id}\" -> \"elide.#{boring_commits.first.id}\";"
+    puts "\"#{interesting_commit.id}\" -> \"elide.#{boring_commits.first.id}\" [weight=#{edge_weight(interesting_commit,boring_commits.first)}];"
   end
 end
 
