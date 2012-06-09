@@ -6,9 +6,19 @@ $commits = {}
 
 def find_children (head_commit, children)
   commits = [head_commit]
+  visited = []
 
   while not commits.empty? do
+    if children.size > 0 and children.size % 1000 == 0 then
+      puts "#processed child info for #{children.size} commits"
+    end
+
     commit = commits.slice! 0
+    if visited.include? commit.id then
+      next
+    end
+    visited.push commit.id
+
     commit.parents.each do |c|
       if not children.has_key? c.id
         children[c.id] = []
