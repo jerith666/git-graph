@@ -149,14 +149,33 @@ def id_for(commit)
   commit.id.slice 0,6
 end
 
-def small_fixed(str)
-  "<font face=\"courier\" point-size=\"9\">#{str}</font>"
-end  
+def fixed(str)
+  "<font face=\"Courier\">#{str}</font>"
+end
+
+def small(str)
+  "<font point-size=\"9\">#{str}</font>"
+end
+
+def smaller(str)
+  "<font point-size=\"8\">#{str}</font>"
+end
+
+def fmt_decor(d)
+  puts "#format #{d.class}"
+  case
+    when d.is_a?(Grit::Tag) then color = "gold3"
+    when d.is_a?(Grit::Head) then color = "forestgreen"
+    else color = "orange3"
+  end
+
+  "<font color=\"#{color}\">#{d.name}</font>"
+end
 
 def make_node(commit, decorations, prefix="")
-  label = small_fixed id_for commit
+  label = smaller fixed id_for commit
   if decorations.has_key? commit.id
-    label = decorations[commit.id].collect{|d| d.name} * "<br/>"
+    label = decorations[commit.id].collect{|d| fmt_decor d} * "<br/>"
   end
 
   puts "\"#{prefix}#{commit.id}\" [label=<<font>#{label}</font>>];"
@@ -178,8 +197,9 @@ def make_elision(boring_commits, interesting_commit)
   if boring_commits.length == 1
     make_node(boring_commits[0], {}, "elide.")
   else
-    rangelbl = small_fixed "#{id_for(boring_commits.first)} .. #{id_for(boring_commits.last)}"
-    puts "\"elide.#{boring_commits.first.id}\" [label=<<font>#{boring_commits.size} commits<br/>#{rangelbl}</font>>];"
+    rangeids = smaller fixed "#{id_for(boring_commits.first)}..#{id_for(boring_commits.last)}"
+    rangedesc = small "#{boring_commits.size} commits"
+    puts "\"elide.#{boring_commits.first.id}\" [label=<<font>#{rangedesc}<br/>#{rangeids}</font>>];"
   end
 
   if not interesting_commit.nil?
