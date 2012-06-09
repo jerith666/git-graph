@@ -175,9 +175,17 @@ end
 
 repo = Grit::Repo.new(ARGV[0]);
 
-#decorated = (repo.branches + repo.remotes + repo.tags).collect{|r| r.commit}
-#d2 = decorated.collect{|c| c.parents} #TODO still necessary?
-decorated = (repo.branches + repo.tags).collect{|r| r.commit}
+decorated = (repo.branches + repo.remotes + repo.tags).collect{|r| r.commit}
+decorated.reject!{|ref|
+begin
+  ref.parents
+  false
+rescue NoMethodError
+  puts "#omitting #{ref} that doesn't know its parents"
+  true
+end}
+
+puts "##{decorated.length} decorations"
 
 children = {}
 visited = []
@@ -185,7 +193,6 @@ decorated.each do |c|
   puts "#finding children for #{c.id}"
   find_children(c, children, visited)
 end
-puts "#done finding children"
 
 decorations = {}
 repo.branches.each do |b|
@@ -194,6 +201,13 @@ repo.branches.each do |b|
     decorations[b.commit.id] = []
   end
   decorations[b.commit.id].push b
+end
+repo.remotes.each do |r|
+  puts "#noting decoration info for remote branch #{r.name}"
+  if not decorations.has_key? r.commit.id
+    decorations[r.commit.id] = []
+  end
+  decorations[r.commit.id].push r
 end
 repo.tags.each do |t|
   puts "#noting decoration info for tag #{t.name}"
