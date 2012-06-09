@@ -251,7 +251,7 @@ repo.tags.each do |t|
   decorations[t.commit.id].push t
 end
 
-puts "Digraph Git { rankdir=BT;"
+puts "Digraph Git { rankdir=LR;"
 plotted={}
 decorated.each do |c|
   plot_tree(c, children, [], plotted, decorations)
