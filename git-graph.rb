@@ -154,8 +154,13 @@ def id_for(commit)
   commit.id.slice 0,6
 end
 
+def wrap_text(txt, col = 25)
+  txt.gsub(/(.{1,#{col}})( +|$\n?)|(.{1,#{col}})/,
+    "\\1\\3\n") 
+end
+
 def log_for(commit)
-  commit.message.gsub(%r|git-svn-id: .*$|, "").to_xs.gsub(%r|\n|, "<br/>")
+  wrap_text(commit.message.gsub(%r|git-svn-id: .*$|, "")).to_xs.gsub(%r|\n|, "<br/>")
 end
 
 def fixed(str)
