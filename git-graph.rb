@@ -13,10 +13,10 @@ def find_children (head_commit, children, visited)
     end
 
     commit = commits.slice! 0
-    if visited.include? commit.id then
+    if visited.has_key? commit.id then
       next
     end
-    visited.push commit.id
+    visited[commit.id] = true
 
     commit.parents.each do |c|
       if not children.has_key? c.id
@@ -225,7 +225,7 @@ end}
 puts "##{decorated.length} decorations"
 
 children = {}
-visited = []
+visited = {}
 decorated.each do |c|
   puts "#finding children for #{c.id}"
   find_children(c, children, visited)
