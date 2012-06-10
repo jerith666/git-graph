@@ -176,7 +176,11 @@ def fmt_decor(d)
 end
 
 def color(commit)
-  "color=\"##{commit.id.slice 0,6}\""
+  r = commit.id.slice(0,2).hex
+  g = commit.id.slice(2,2).hex
+  b = commit.id.slice(4,2).hex
+  col = [r,g,b].collect{|c| [c, 192].min.to_s(16).rjust(2,"0")} * ""
+  "color=\"##{col}\""
 end
 
 def make_node(commit, decorations, prefix="")
