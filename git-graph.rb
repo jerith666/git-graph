@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'grit'
+require 'builder'
 
 $commits = {}
 
@@ -153,6 +154,10 @@ def id_for(commit)
   commit.id.slice 0,6
 end
 
+def log_for(commit)
+  commit.message.gsub(%r|git-svn-id: .*$|, "").to_xs.gsub(%r|\n|, "<br/>")
+end
+
 def fixed(str)
   "<font face=\"Courier\">#{str}</font>"
 end
@@ -184,7 +189,8 @@ def color(commit)
 end
 
 def make_node(commit, decorations, prefix="")
-  label = smaller fixed id_for commit
+  label = smaller fixed log_for commit
+
   if decorations.has_key? commit.id
     label = decorations[commit.id].collect{|d| fmt_decor d} * "<br/>"
   end
