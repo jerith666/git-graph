@@ -185,7 +185,12 @@ def make_node(commit, decorations, prefix="")
     label = decorations[commit.id].collect{|d| fmt_decor d} * "<br/>"
   end
 
-  puts "\"#{prefix}#{commit.id}\" [label=<<font>#{label}</font>>];"
+  fill = ""
+  if not decorations.has_key? commit.id
+    fill = "style=filled fillcolor=gray75"
+  end
+
+  puts "\"#{prefix}#{commit.id}\" [label=<<font>#{label}</font>> #{fill}];"
 end
 
 def edge_weight(parent, child)
@@ -210,7 +215,8 @@ def make_elision(boring_commits, interesting_commit)
   else
     rangeids = smaller fixed "#{id_for(boring_commits.first)}..#{id_for(boring_commits.last)}"
     rangedesc = small "#{boring_commits.size} commits"
-    puts "\"elide.#{boring_commits.first.id}\" [label=<<font>#{rangedesc}<br/>#{rangeids}</font>>];"
+    fill = "style=filled fillcolor=gray75"
+    puts "\"elide.#{boring_commits.first.id}\" [label=<<font>#{rangedesc}<br/>#{rangeids}</font>> #{fill}];"
   end
 
   if not interesting_commit.nil?
