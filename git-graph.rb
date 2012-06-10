@@ -34,10 +34,13 @@ def find_children (head_commit, children, visited)
 end
 
 def plot_tree (head_commit, children, boring, plotted, decorations)
-  to_plot = [head_commit]
+  to_plot = [[head_commit, []]]
 
   while not to_plot.empty? do
-    commit = to_plot.slice! 0
+    nextdata = to_plot.slice! 0
+    commit = nextdata[0]
+    boring = nextdata[1]
+
     if plotted.has_key? commit.id
       next
     end
@@ -55,16 +58,17 @@ def plot_tree (head_commit, children, boring, plotted, decorations)
         if is_interesting(commit, children, decorations)
           make_edge(commit, c)
         else
+          puts "#boring commit #{commit.id}, interesting parent #{c.id}"
           make_elision(boring, c)
         end
-        boring = []
+        boring = [] #TODO not quite right ... need sub-boring list within inner loop
       else
         if is_interesting(commit, children, decorations)
           make_edge_to_elision(commit, c)
         end
       end
 
-      parents_to_plot.push c
+      parents_to_plot = [[c, boring]] + parents_to_plot
       #plot_tree(c, children, boring, plotted, decorations)
     end
     to_plot = parents_to_plot + to_plot
