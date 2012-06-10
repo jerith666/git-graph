@@ -171,13 +171,17 @@ def fmt_decor(d)
   "<font color=\"#{color}\">#{d.name}</font>"
 end
 
+def color(commit)
+  "color=\"##{commit.id.slice 0,6}\""
+end
+
 def make_node(commit, decorations, prefix="")
   label = smaller fixed id_for commit
   if decorations.has_key? commit.id
     label = decorations[commit.id].collect{|d| fmt_decor d} * "<br/>"
   end
 
-  puts "\"#{prefix}#{commit.id}\" [label=<<font>#{label}</font>>];"
+  puts "\"#{prefix}#{commit.id}\" [label=<<font>#{label}</font>> #{color(commit)}];"
 end
 
 def edge_weight(parent, child)
@@ -185,11 +189,11 @@ def edge_weight(parent, child)
 end
 
 def make_edge(c1, c2)
-  puts "\"#{c2.id}\" -> \"#{c1.id}\" [weight=#{edge_weight(c2, c1)}];"
+  puts "\"#{c2.id}\" -> \"#{c1.id}\" [weight=#{edge_weight(c2, c1)} #{color(c2)}];"
 end
 
 def make_edge_to_elision(commit, first_boring)
-  puts "\"elide.#{first_boring.id}\" -> \"#{commit.id}\" [weight=#{edge_weight(first_boring,commit)}];"
+  puts "\"elide.#{first_boring.id}\" -> \"#{commit.id}\" [weight=#{edge_weight(first_boring,commit)} #{color(first_boring)}];"
 end
 
 def make_elision(boring_commits, interesting_commit)
@@ -202,11 +206,11 @@ def make_elision(boring_commits, interesting_commit)
   else
     rangeids = smaller fixed "#{id_for(boring_commits.first)}..#{id_for(boring_commits.last)}"
     rangedesc = small "#{boring_commits.size} commits"
-    puts "\"elide.#{boring_commits.first.id}\" [label=<<font>#{rangedesc}<br/>#{rangeids}</font>>];"
+    puts "\"elide.#{boring_commits.first.id}\" [label=<<font>#{rangedesc}<br/>#{rangeids}</font>> #{color(boring_commits.first)}];"
   end
 
   if not interesting_commit.nil?
-    puts "\"#{interesting_commit.id}\" -> \"elide.#{boring_commits.first.id}\" [weight=#{edge_weight(interesting_commit,boring_commits.first)}];"
+    puts "\"#{interesting_commit.id}\" -> \"elide.#{boring_commits.first.id}\" [weight=#{edge_weight(interesting_commit,boring_commits.first)} #{color(interesting_commit)}];"
   end
 end
 
