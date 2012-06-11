@@ -5,3 +5,5 @@ Sample usage:
 ./git-graph.rb <path-to-repo> | dot -Tsvg -ohistory.svg /dev/stdin
 
 Requires the Grit Ruby library.
+
+Based on http://code.activestate.com/recipes/577572-display-a-git-repository/
