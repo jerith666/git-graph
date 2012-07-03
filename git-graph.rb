@@ -160,7 +160,7 @@ def wrap_text(txt, col = 25)
 end
 
 def log_for(commit)
-  wrap_text(commit.message.gsub(%r|git-svn-id: .*$|, "")).to_xs.gsub(%r|\n|, "<br/>")
+  wrap_text(commit.message.gsub(%r|git-svn-id: .*$|, "") + id_for(commit)).to_xs.gsub(%r|\n|, "<br/>")
 end
 
 def fixed(str)
