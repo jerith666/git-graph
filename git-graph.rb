@@ -166,7 +166,8 @@ def wrap_text(txt, col = 25)
 end
 
 def log_for(commit)
-  wrap_text(commit.message.gsub(%r|git-svn-id: .*$|, "") + id_for(commit)).to_xs.gsub(%r|\n|, "<br/>")
+  #escape twice so that xml entities end up correct in svg files
+  wrap_text(commit.message.gsub(%r|git-svn-id: .*$|, "") + id_for(commit)).to_xs.to_xs.gsub(%r|\n|, "<br/>")
 end
 
 def fixed(str)
