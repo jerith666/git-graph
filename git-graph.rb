@@ -1,7 +1,13 @@
 #!/usr/bin/env ruby
 
 require 'grit'
-require 'builder'
+require 'builder' #needs 3.0.0 and ruby 1.9
+
+class String
+  def to_xs()
+    Builder::XChar::encode(self)
+  end
+end
 
 $commits = {}
 
