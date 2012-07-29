@@ -235,7 +235,10 @@ def make_elision(boring_commits, interesting_commit)
   if boring_commits.length == 1
     make_node(boring_commits[0], {}, "elide.")
   else
-    rangeids = smaller fixed "#{id_for(boring_commits.first)}..#{id_for(boring_commits.last)}"
+    # since we're traversing backwards in time by following parent links,
+    # the boring_commits list is in reverse chronological order
+    # (see issue 2)
+    rangeids = smaller fixed "#{id_for(boring_commits.last)}..#{id_for(boring_commits.first)}"
     rangedesc = small "#{boring_commits.size} commits"
     fill = "style=filled fillcolor=gray75"
     puts "\"elide.#{boring_commits.first.id}\" [label=<<font>#{rangedesc}<br/>#{rangeids}</font>> #{fill}];"
