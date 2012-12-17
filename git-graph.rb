@@ -1,11 +1,11 @@
 #!/usr/bin/env ruby
-
+require 'rubygems'
 require 'grit'
-require 'builder' #needs 3.0.0 and ruby 1.9
+require 'fast_xs'
 
 class String
   def to_xs()
-    Builder::XChar::encode(self)
+    self.fast_xs
   end
 end
 

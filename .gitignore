@@ -2,3 +2,4 @@
 *.dot
 *.png
 *.svg
+/Gemfile.lock
