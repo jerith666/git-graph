@@ -2,4 +2,4 @@
 source "https://rubygems.org"
 
 gem "grit"
-gem "hpricot"
+gem "fast_xs"

@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 require 'rubygems'
 require 'grit'
-require 'hpricot'
+require 'fast_xs'
 
 class String
   def to_xs()
