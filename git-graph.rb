@@ -3,12 +3,6 @@ require 'rubygems'
 require 'grit'
 require 'fast_xs'
 
-class String
-  def to_xs()
-    self.fast_xs
-  end
-end
-
 $commits = {}
 
 def find_children (head_commit, children, visited)
@@ -167,7 +161,7 @@ end
 
 def log_for(commit)
   #escape twice so that xml entities end up correct in svg files
-  wrap_text(commit.message.gsub(%r|git-svn-id: .*$|, "") + id_for(commit)).to_xs.to_xs.gsub(%r|\n|, "<br/>")
+  wrap_text(commit.message.gsub(%r|git-svn-id: .*$|, "") + id_for(commit)).fast_xs.fast_xs.gsub(%r|\n|, "<br/>")
 end
 
 def fixed(str)
