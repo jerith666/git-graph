@@ -164,7 +164,7 @@ def log_for(commit)
   commit_msg = commit.message.gsub(%r|git-svn-id: .*$|, "")
   cutoff = 297
   if commit_msg.length > cutoff+3
-    commit_msg = commit_msg.slice(0,cutoff) + " ... (#{commit_msg.length-cutoff} more)"
+    commit_msg = commit_msg.slice(0,cutoff) + " ... (#{commit_msg.length-cutoff} longer)"
   end
   wrap_text(commit_msg + " [" + id_for(commit) + "]").fast_xs.fast_xs.gsub(%r|\n|, "<br/>")
 end
