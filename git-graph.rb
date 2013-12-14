@@ -165,8 +165,7 @@ def log_for(commit)
   if commit_msg.length > cutoff+3
     commit_msg = commit_msg.slice(0,cutoff) + " ... (#{commit_msg.length-cutoff} longer)"
   end
-  #escape twice so that xml entities end up correct in svg files
-  wrap_text(commit_msg + " [" + id_for(commit) + "]").fast_xs.fast_xs.gsub(%r|\n|, "<br/>")
+  esc_log(wrap_text(commit_msg + " [" + id_for(commit) + "]")).gsub(%r|\n|, "<br/>")
 end
 
 def fixed(str)
@@ -246,6 +245,39 @@ def make_elision(boring_commits, interesting_commit)
   if not interesting_commit.nil?
     puts "\"#{interesting_commit.id}\" -> \"elide.#{boring_commits.first.id}\" [weight=#{edge_weight(interesting_commit,boring_commits.first)} #{color(interesting_commit)}];"
   end
+end
+
+if ARGV[1] == "--svg"
+  #escape twice so that xml entities end up correct in svg files
+  def esc_log(log)
+    return log.fast_xs.fast_xs
+  end
+else
+  def esc_log(log)
+    return log.fast_xs
+  end
+end
+
+#test command:
+#for t in svg png; do
+#  ./git-graph.rb test --${t} | dot -T${t} -otest.${t} /dev/stdin;
+#done
+
+if ARGV[0] == "test"
+  puts "Digraph test { rankdir=LR;"
+  class TestCommit
+    def initialize(message, id)
+      @message = message
+      @id = id
+    end
+    attr_accessor :message
+    attr_accessor :id
+  end
+  make_node(TestCommit.new("msg", "plain"), {})
+  make_node(TestCommit.new("msg with entities: &nbsp; &amp; &lt; &gt; &quot;", "ent"), {})
+  make_node(TestCommit.new("msg with \"quotes\"", "quot"), {})
+  puts "}"
+  exit()
 end
 
 repo = Grit::Repo.new(ARGV[0]);

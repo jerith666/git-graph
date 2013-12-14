@@ -2,7 +2,8 @@ A ruby script that creates a Graphviz graph showing the high-level structure of 
 
 Sample usage:
 
-./git-graph.rb <path-to-repo> | dot -Tsvg -ohistory.svg /dev/stdin
+./git-graph.rb <path-to-repo>       | dot -Tpng -ohistory.png /dev/stdin
+./git-graph.rb <path-to-repo> --svg | dot -Tsvg -ohistory.svg /dev/stdin
 
 Requires the Grit and fast_xs Ruby libraries. Use bundler to make sure they are installed.
 
