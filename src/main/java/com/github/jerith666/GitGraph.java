@@ -32,85 +32,85 @@ import com.google.common.collect.SetMultimap;
 
 public final class GitGraph {
 
-	public static void main(String[] args) throws IOException {
-		final Repository repo = new FileRepositoryBuilder().findGitDir(new File(args[0])).setMustExist(true).build();
+    public static void main(String[] args) throws IOException {
+        final Repository repo = new FileRepositoryBuilder().findGitDir(new File(args[0]))
+                                                           .setMustExist(true)
+                                                           .build();
 
-		Set<String> graphSrcCommits;
-		if(args.length > 1){
-			graphSrcCommits = readStringsFrom(new FileInputStream(new File(args[1])));
-		}
-		else{
-			graphSrcCommits = readStringsFrom(System.in);
-		}
+        Set<String> graphSrcCommits;
+        if(args.length > 1){
+            graphSrcCommits = readStringsFrom(new FileInputStream(new File(args[1])));
+        }
+        else{
+            graphSrcCommits = readStringsFrom(System.in);
+        }
 
-		SetMultimap<RevCommit, RevCommit> children = LinkedHashMultimap.create();
+        SetMultimap<RevCommit, RevCommit> children = LinkedHashMultimap.create();
 
-		final RevWalk rw = new RevWalk(repo);
-		Set<RevCommit> srcCommits = new LinkedHashSet<>();
-		for(String commitStr : graphSrcCommits){
-			srcCommits.add(rw.parseCommit(repo.resolve(commitStr)));
-		}
-//		Set<RevCommit> srcCommits = ImmutableSet.copyOf(Lists.transform(ImmutableList.copyOf(graphSrcCommits), new Function<String,RevCommit>(){
-//			public RevCommit apply(String commitStr) {
-//				return rw.parseCommit(repo.resolve(commitStr));
-//			}}));
+        final RevWalk rw = new RevWalk(repo);
+        Set<RevCommit> srcCommits = new LinkedHashSet<>();
+        for(String commitStr : graphSrcCommits){
+            srcCommits.add(rw.parseCommit(repo.resolve(commitStr)));
+        }
+        //		Set<RevCommit> srcCommits = ImmutableSet.copyOf(Lists.transform(ImmutableList.copyOf(graphSrcCommits), new Function<String,RevCommit>(){
+        //			public RevCommit apply(String commitStr) {
+        //				return rw.parseCommit(repo.resolve(commitStr));
+        //			}}));
 
-		Set<RevCommit> visited = new LinkedHashSet<RevCommit>();
-		for(RevCommit srcCommit : srcCommits){
-			findChildren(srcCommit, rw, children, visited);
-		}
+        Set<RevCommit> visited = new LinkedHashSet<RevCommit>();
+        for(RevCommit srcCommit : srcCommits){
+            findChildren(srcCommit, rw, children, visited);
+        }
 
-		SetMultimap<ObjectId, String> refNames = Multimaps.invertFrom(Multimaps.forMap(Maps.transformValues(repo.getAllRefs(), new Function<Ref,ObjectId>(){
-			@Override
-			public ObjectId apply(Ref ref) {
-				return ref.getObjectId();
-			}})), LinkedHashMultimap.<ObjectId,String>create());
+        SetMultimap<ObjectId, String> refNames = Multimaps.invertFrom(Multimaps.forMap(Maps.transformValues(repo.getAllRefs(),
+                                                                                                            (Function<Ref, ObjectId>) ref -> ref.getObjectId())),
+                                                                      LinkedHashMultimap.<ObjectId,String>create());
 
-		Set<RevCommit> plotted = new LinkedHashSet<>();
-		for(RevCommit srcCommit : srcCommits){
-			plotTree(srcCommit, children, plotted, refNames);
-		}
-		for(Entry<RevCommit, Collection<RevCommit>> childEntry : children.asMap().entrySet()){
-			if(refNames.containsKey(childEntry.getKey().getId())){
-				System.out.println(refNames.get(childEntry.getKey().getId()) + " = " + childEntry.getKey().getId());
-				for(RevCommit c : childEntry.getValue()){
-					System.out.println("  -> " + c);
-				}
-			}
-		}
-	}
+        Set<RevCommit> plotted = new LinkedHashSet<>();
+        for(RevCommit srcCommit : srcCommits){
+            plotTree(srcCommit, children, plotted, refNames);
+        }
+        for(Entry<RevCommit, Collection<RevCommit>> childEntry : children.asMap().entrySet()){
+            if(refNames.containsKey(childEntry.getKey().getId())){
+                System.out.println(refNames.get(childEntry.getKey().getId()) + " = " + childEntry.getKey().getId());
+                for(RevCommit c : childEntry.getValue()){
+                    System.out.println("  -> " + c);
+                }
+            }
+        }
+    }
 
-	private static void plotTree(RevCommit srcCommit, SetMultimap<RevCommit, RevCommit> children, Set<RevCommit> plotted, SetMultimap<ObjectId, String> refNames){
-		
-	}
+    private static void plotTree(RevCommit srcCommit, SetMultimap<RevCommit, RevCommit> children, Set<RevCommit> plotted, SetMultimap<ObjectId, String> refNames){
 
-	private static void findChildren(RevCommit srcCommit, RevWalk rw, SetMultimap<RevCommit, RevCommit> children, Set<RevCommit> visited) throws MissingObjectException, IncorrectObjectTypeException, IOException{
-		Deque<RevCommit> commits = new LinkedList<>();
-		commits.push(srcCommit);
+    }
 
-		while(!commits.isEmpty()){
-			RevCommit commit = commits.pop();
-			rw.parseCommit(commit.getId());
+    private static void findChildren(RevCommit srcCommit, RevWalk rw, SetMultimap<RevCommit, RevCommit> children, Set<RevCommit> visited) throws MissingObjectException, IncorrectObjectTypeException, IOException{
+        Deque<RevCommit> commits = new LinkedList<>();
+        commits.push(srcCommit);
 
-			if(visited.contains(commit)){
-				continue;
-			}
-			visited.add(commit);
+        while(!commits.isEmpty()){
+            RevCommit commit = commits.pop();
+            rw.parseCommit(commit.getId());
 
-			for(RevCommit parent : commit.getParents()){
-				children.put(parent, commit);
-				commits.push(parent);
-			}
-		}
-	}
+            if(visited.contains(commit)){
+                continue;
+            }
+            visited.add(commit);
 
-	private static Set<String> readStringsFrom(InputStream is) throws IOException{
-		BufferedReader br = new BufferedReader(new InputStreamReader(is));
-		Set<String> strings = new LinkedHashSet<>();
-		String nextLine;
-		while((nextLine = br.readLine()) != null){
-			strings.add(nextLine);
-		}
-		return strings;
-	}
+            for(RevCommit parent : commit.getParents()){
+                children.put(parent, commit);
+                commits.push(parent);
+            }
+        }
+    }
+
+    private static Set<String> readStringsFrom(InputStream is) throws IOException{
+        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+        Set<String> strings = new LinkedHashSet<>();
+        String nextLine;
+        while((nextLine = br.readLine()) != null){
+            strings.add(nextLine);
+        }
+        return strings;
+    }
 }
