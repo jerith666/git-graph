@@ -68,17 +68,14 @@ public final class GitGraph {
         final Repository repo = new FileRepositoryBuilder().findGitDir(new File(args[0]))
                                                            .setMustExist(true)
                                                            .build();
-        
-        ExceptionalFunction<String, Map<String, Ref>, IOException> getRefsByPrefix = repo.getRefDatabase()::getRefs;
-        //BiFunction<T, U, R> x = (m1, m2) -> {LinkedHashMap<String, Ref> m = new LinkedHashMap<>(m1); m.putAll(m2); return m;}
-        applyOrDie(R_HEADS, getRefsByPrefix).thenCombine(applyOrDie(R_REMOTES, getRefsByPrefix).thenCombine(applyOrDie(R_TAGS, getRefsByPrefix),
-                                                                                                            mapCollapser()),
-                                                         mapCollapser())
-                                            .thenAccept(refMap -> new LinkedHashMap<>(refMap).entrySet().forEach(System.out::println))
-                                            .exceptionally(t -> { t.printStackTrace(); return null; } );
+
+        Stream.of(R_HEADS, R_REMOTES, R_TAGS)
+              .map(prefix -> applyOrDie(prefix, repo.getRefDatabase()::getRefs))
+              .reduce((refGetter1, refGetter2) -> refGetter1.thenCombine(refGetter2, mapCollapser()))
+              .ifPresent(allRefsGetter -> allRefsGetter.thenAccept(refMap -> new LinkedHashMap<>(refMap).entrySet().forEach(System.out::println))
+                                                       .exceptionally(t -> { t.printStackTrace(); return null; } ));
         System.exit(0);
-//        Stream.of(R_HEADS, R_REMOTES, R_TAGS)
-//              .flatMap(prefix -> repo.getRefDatabase().getRefs(prefix).entrySet().stream());
+
         repo.getRefDatabase().getRefs(Constants.R_HEADS);
         repo.getRefDatabase().getRefs(Constants.R_HEADS);
         repo.getRefDatabase().getRefs(Constants.R_HEADS);
