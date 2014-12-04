@@ -3,3 +3,7 @@
 *.png
 *.svg
 
+target
+.classpath
+.project
+.settings
