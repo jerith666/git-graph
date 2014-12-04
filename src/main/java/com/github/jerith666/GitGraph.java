@@ -74,7 +74,8 @@ public final class GitGraph {
         applyOrDie(R_HEADS, getRefsByPrefix).thenCombine(applyOrDie(R_REMOTES, getRefsByPrefix).thenCombine(applyOrDie(R_TAGS, getRefsByPrefix),
                                                                                                             mapCollapser()),
                                                          mapCollapser())
-                                            .thenAccept(refMap -> new LinkedHashMap<>(refMap).entrySet().forEach(System.out::println));
+                                            .thenAccept(refMap -> new LinkedHashMap<>(refMap).entrySet().forEach(System.out::println))
+                                            .exceptionally(t -> { t.printStackTrace(); return null; } );
         System.exit(0);
 //        Stream.of(R_HEADS, R_REMOTES, R_TAGS)
 //              .flatMap(prefix -> repo.getRefDatabase().getRefs(prefix).entrySet().stream());
