@@ -73,7 +73,7 @@ public final class GitGraph {
               .map(prefix -> applyOrDie(prefix, repo.getRefDatabase()::getRefs))
               .reduce((refGetter1, refGetter2) -> refGetter1.thenCombine(refGetter2, mapCollapser()))
               .ifPresent(allRefsGetter -> allRefsGetter.thenAccept(refMap -> new LinkedHashMap<>(refMap).entrySet().forEach(System.out::println))
-                                                       .exceptionally(t -> { t.printStackTrace(); return null; } ));
+                                                       .exceptionally(t -> { System.out.println("failed with: " + t); return null; } ));
         System.exit(0);
 
         repo.getRefDatabase().getRefs(Constants.R_HEADS);
