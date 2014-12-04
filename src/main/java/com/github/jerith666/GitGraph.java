@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
@@ -44,7 +45,7 @@ public final class GitGraph {
         R apply(T t) throws E;
     }
 
-    private static <T,R,E extends Throwable> CompletableFuture<R> applyOrDie(T t, ExceptionalFunction<T,R,E> ef){
+    private static <T,R,E extends Throwable> CompletionStage<R> applyOrDie(T t, ExceptionalFunction<T,R,E> ef){
         CompletableFuture<R> cf = new CompletableFuture<R>();
         try{
             cf.complete(ef.apply(t));
