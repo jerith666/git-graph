@@ -1,5 +1,6 @@
 package com.github.jerith666;
 
+import static com.google.common.collect.Maps.*;
 import static java.util.stream.Collectors.*;
 import static org.eclipse.jgit.lib.Constants.*;
 
@@ -19,6 +20,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
@@ -91,9 +93,9 @@ public final class GitGraph {
                   .ifPresent(childFinder -> childFinder.thenAccept(nulll -> {;})
                                                        .exceptionally(t -> { System.out.println("failed with: " + t); return null; } ));
 
-        SetMultimap<ObjectId, String> refNames = Multimaps.invertFrom(Multimaps.forMap(Maps.transformValues(repo.getAllRefs(),
-                                                                                                            (Function<Ref, ObjectId>) ref -> ref.getObjectId())),
-                                                                      LinkedHashMultimap.<ObjectId,String>create());
+        SetMultimap<ObjectId, String> refNames = Multimaps.invertFrom(Multimaps.forMap(transformValues(repo.getAllRefs(),
+                                                                                                       Ref::getObjectId)),
+                                                                      LinkedHashMultimap.create());
 
         Set<RevCommit> plotted = new LinkedHashSet<>();
         for(RevCommit srcCommit : srcCommits){
