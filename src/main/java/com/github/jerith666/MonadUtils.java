@@ -37,7 +37,7 @@ public final class MonadUtils {
                                                                               R identity,
                                                                               ExceptionalFunction<T, R, E> stageCreator,
                                                                               BinaryOperator<R> stageAccumulator){
-        return source.map((T s) -> applyOrDie(s, stageCreator))
+        return source.map(s -> applyOrDie(s, stageCreator))
                      .reduce(completedFuture(identity),
                              (s1, s2) -> s1.thenCombine(s2, stageAccumulator));
     }
