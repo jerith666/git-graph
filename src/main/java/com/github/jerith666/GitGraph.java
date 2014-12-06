@@ -84,7 +84,7 @@ public final class GitGraph {
                                           .map(rw::lookupCommit)
                                           .collect(toSet());
 
-        Set<RevCommit> visited = new LinkedHashSet<RevCommit>();
+        Set<RevCommit> visited = new LinkedHashSet<RevCommit>();//TODO this makes the following stream op stateful
         srcCommits.stream()
                   .map(srcCommit -> applyOrDie(srcCommit, c -> findChildren(c, rw, children, visited)))
                   .reduce((childFinder1, childFinder2) -> childFinder1.thenCombine(childFinder2, (t, u) -> null))
