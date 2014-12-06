@@ -6,11 +6,8 @@ import static java.util.Arrays.*;
 import static java.util.stream.Collectors.*;
 import static org.eclipse.jgit.lib.Constants.*;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -106,15 +103,5 @@ public final class GitGraph {
         }
 
         return null;
-    }
-
-    private static Set<String> readStringsFrom(InputStream is) throws IOException{
-        BufferedReader br = new BufferedReader(new InputStreamReader(is));
-        Set<String> strings = new LinkedHashSet<>();
-        String nextLine;
-        while((nextLine = br.readLine()) != null){
-            strings.add(nextLine);
-        }
-        return strings;
     }
 }
