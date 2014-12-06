@@ -58,8 +58,7 @@ public final class GitGraph {
         reduceStages(srcCommits.stream(),
                      null,
                      c -> findChildren(c, rw, children, visited),
-                     (null1, null2) -> null).thenAccept(null1 -> {})
-                                            .exceptionally(t -> { System.out.println("failed with: " + t); return null; } );
+                     (null1, null2) -> null).exceptionally(t -> { System.out.println("failed with: " + t); return null; } );
 
         SetMultimap<ObjectId, String> refNames = Multimaps.invertFrom(Multimaps.forMap(transformValues(repo.getAllRefs(),
                                                                                                        Ref::getObjectId)),
