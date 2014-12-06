@@ -5,7 +5,6 @@ import static java.util.concurrent.CompletableFuture.*;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.function.BinaryOperator;
 import java.util.stream.Stream;
 
@@ -15,7 +14,7 @@ public final class MonadUtils {
         R apply(T t) throws E;
     }
 
-    public static <T,R,E extends Throwable> CompletionStage<R> applyOrDie(T t, ExceptionalFunction<T,R,E> ef){
+    public static <T,R,E extends Throwable> CompletableFuture<R> applyOrDie(T t, ExceptionalFunction<T,R,E> ef){
         CompletableFuture<R> cf = new CompletableFuture<R>();
         try{
             cf.complete(ef.apply(t));
@@ -34,11 +33,12 @@ public final class MonadUtils {
          };
     }
 
-    public static <T,R,E extends Throwable> CompletionStage<R> reduceStages(Stream<T> source,
-                                                                            R identity,
-                                                                            ExceptionalFunction<T, R, E> stageCreator,
-                                                                            BinaryOperator<R> stageAccumulator){
+    public static <T,R,E extends Throwable> CompletableFuture<R> reduceStages(Stream<T> source,
+                                                                              R identity,
+                                                                              ExceptionalFunction<T, R, E> stageCreator,
+                                                                              BinaryOperator<R> stageAccumulator){
         return source.map((T s) -> applyOrDie(s, stageCreator))
-                     .reduce(completedFuture(identity), (s1, s2) -> s1.thenCombine(s2, stageAccumulator));
+                     .reduce(completedFuture(identity),
+                             (s1, s2) -> s1.thenCombine(s2, stageAccumulator));
     }
 }
