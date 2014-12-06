@@ -48,8 +48,6 @@ public final class GitGraph {
     }
 
     private static void processSrcCommits(Repository repo, Map<String, Ref> srcCommitNames){
-        //new LinkedHashMap<>(refMap).entrySet().forEach(System.out::println);
-
         RevWalk rw = new RevWalk(repo);
 
         Set<RevCommit> srcCommits = srcCommitNames.values().stream()
