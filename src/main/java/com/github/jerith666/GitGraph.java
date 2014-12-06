@@ -1,20 +1,18 @@
 package com.github.jerith666;
 
+import static java.util.stream.Collectors.*;
 import static org.eclipse.jgit.lib.Constants.*;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -25,7 +23,6 @@ import java.util.stream.Stream;
 
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.errors.MissingObjectException;
-import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -72,39 +69,27 @@ public final class GitGraph {
         Stream.of(R_HEADS, R_REMOTES, R_TAGS)
               .map(prefix -> applyOrDie(prefix, repo.getRefDatabase()::getRefs))
               .reduce((refGetter1, refGetter2) -> refGetter1.thenCombine(refGetter2, mapCollapser()))
-              .ifPresent(allRefsGetter -> allRefsGetter.thenAccept(refMap -> new LinkedHashMap<>(refMap).entrySet().forEach(System.out::println))
+              .ifPresent(allRefsGetter -> allRefsGetter.thenAccept(refMap -> processSrcCommits(repo, refMap))
                                                        .exceptionally(t -> { System.out.println("failed with: " + t); return null; } ));
-        System.exit(0);
+    }
 
-        repo.getRefDatabase().getRefs(Constants.R_HEADS);
-        repo.getRefDatabase().getRefs(Constants.R_HEADS);
-        repo.getRefDatabase().getRefs(Constants.R_HEADS);
-        new LinkedHashMap<>(repo.getAllRefs()).entrySet().forEach(System.out::println);
-        
-        Set<String> graphSrcCommits;
-        if(args.length > 1){
-            graphSrcCommits = readStringsFrom(new FileInputStream(new File(args[1])));
-        }
-        else{
-            graphSrcCommits = readStringsFrom(System.in);
-        }
-
+    private static void processSrcCommits(Repository repo, Map<String, Ref> refMap){
+        //new LinkedHashMap<>(refMap).entrySet().forEach(System.out::println);
         SetMultimap<RevCommit, RevCommit> children = LinkedHashMultimap.create();
 
-        final RevWalk rw = new RevWalk(repo);
-        Set<RevCommit> srcCommits = new LinkedHashSet<>();
-        for(String commitStr : graphSrcCommits){
-            srcCommits.add(rw.parseCommit(repo.resolve(commitStr)));
-        }
-        //		Set<RevCommit> srcCommits = ImmutableSet.copyOf(Lists.transform(ImmutableList.copyOf(graphSrcCommits), new Function<String,RevCommit>(){
-        //			public RevCommit apply(String commitStr) {
-        //				return rw.parseCommit(repo.resolve(commitStr));
-        //			}}));
+        RevWalk rw = new RevWalk(repo);
+
+        Set<RevCommit> srcCommits = refMap.values().stream()
+                                          .map(Ref::getObjectId)
+                                          .map(rw::lookupCommit)
+                                          .collect(toSet());
 
         Set<RevCommit> visited = new LinkedHashSet<RevCommit>();
-        for(RevCommit srcCommit : srcCommits){
-            findChildren(srcCommit, rw, children, visited);
-        }
+        srcCommits.stream()
+                  .map(srcCommit -> applyOrDie(srcCommit, c -> findChildren(c, rw, children, visited)))
+                  .reduce((childFinder1, childFinder2) -> childFinder1.thenCombine(childFinder2, (t, u) -> null))
+                  .ifPresent(childFinder -> childFinder.thenAccept(nulll -> {;})
+                                                       .exceptionally(t -> { System.out.println("failed with: " + t); return null; } ));
 
         SetMultimap<ObjectId, String> refNames = Multimaps.invertFrom(Multimaps.forMap(Maps.transformValues(repo.getAllRefs(),
                                                                                                             (Function<Ref, ObjectId>) ref -> ref.getObjectId())),
@@ -128,7 +113,7 @@ public final class GitGraph {
 
     }
 
-    private static void findChildren(RevCommit srcCommit, RevWalk rw, SetMultimap<RevCommit, RevCommit> children, Set<RevCommit> visited) throws MissingObjectException, IncorrectObjectTypeException, IOException{
+    private static Void findChildren(RevCommit srcCommit, RevWalk rw, SetMultimap<RevCommit, RevCommit> children, Set<RevCommit> visited) throws MissingObjectException, IncorrectObjectTypeException, IOException{
         Deque<RevCommit> commits = new LinkedList<>();
         commits.push(srcCommit);
 
@@ -146,6 +131,8 @@ public final class GitGraph {
                 commits.push(parent);
             }
         }
+
+        return null;
     }
 
     private static Set<String> readStringsFrom(InputStream is) throws IOException{
