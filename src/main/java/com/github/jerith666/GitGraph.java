@@ -1,5 +1,6 @@
 package com.github.jerith666;
 
+import static com.github.jerith666.MonadUtils.*;
 import static com.google.common.collect.Maps.*;
 import static java.util.Arrays.*;
 import static java.util.stream.Collectors.*;
@@ -11,16 +12,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
@@ -37,45 +35,20 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 
 public final class GitGraph {
-    @FunctionalInterface
-    private static interface ExceptionalFunction<T,R,E extends Throwable>{
-        R apply(T t) throws E;
-    }
-
-    private static <T,R,E extends Throwable> CompletionStage<R> applyOrDie(T t, ExceptionalFunction<T,R,E> ef){
-        CompletableFuture<R> cf = new CompletableFuture<R>();
-        try{
-            cf.complete(ef.apply(t));
-        }
-        catch(Throwable e){
-            cf.completeExceptionally(e);
-        }
-        return cf;
-    }
-
-    private static <K,V> BiFunction<Map<? extends K,? extends V>, Map<? extends K,? extends V>, Map<K, V>> mapCollapser(){
-        return (m1, m2) -> {
-            Map<K,V> m = new LinkedHashMap<K,V>(m1);
-            m.putAll(m2);
-            return m;
-         };
-    }
-
     public static void main(String[] args) throws IOException {
         final Repository repo = new FileRepositoryBuilder().findGitDir(new File(args[0]))
                                                            .setMustExist(true)
                                                            .build();
 
-        Stream.of(R_HEADS, R_REMOTES, R_TAGS)
-              .map(prefix -> applyOrDie(prefix, repo.getRefDatabase()::getRefs))
-              .reduce((refGetter1, refGetter2) -> refGetter1.thenCombine(refGetter2, mapCollapser()))
-              .ifPresent(allRefsGetter -> allRefsGetter.thenAccept(refMap -> processSrcCommits(repo, refMap))
-                                                       .exceptionally(t -> { System.out.println("failed with: " + t); return null; } ));
+        reduceStages(Stream.of(R_HEADS, R_REMOTES, R_TAGS),
+                     Collections.emptyMap(),
+                     repo.getRefDatabase()::getRefs,
+                     mapCollapser()).thenAccept(refMap -> processSrcCommits(repo, refMap))
+                                    .exceptionally(t -> { System.out.println("failed with: " + t); return null; } );
     }
 
     private static void processSrcCommits(Repository repo, Map<String, Ref> refMap){
         //new LinkedHashMap<>(refMap).entrySet().forEach(System.out::println);
-        SetMultimap<RevCommit, RevCommit> children = LinkedHashMultimap.create();
 
         RevWalk rw = new RevWalk(repo);
 
@@ -84,12 +57,14 @@ public final class GitGraph {
                                           .map(rw::lookupCommit)
                                           .collect(toSet());
 
-        Set<RevCommit> visited = new LinkedHashSet<RevCommit>();//TODO this makes the following stream op stateful
-        srcCommits.stream()
-                  .map(srcCommit -> applyOrDie(srcCommit, c -> findChildren(c, rw, children, visited)))
-                  .reduce((childFinder1, childFinder2) -> childFinder1.thenCombine(childFinder2, (t, u) -> null))
-                  .ifPresent(childFinder -> childFinder.thenAccept(nulll -> {;})
-                                                       .exceptionally(t -> { System.out.println("failed with: " + t); return null; } ));
+        //TODO these make the following stream op stateful
+        SetMultimap<RevCommit, RevCommit> children = LinkedHashMultimap.create();
+        Set<RevCommit> visited = new LinkedHashSet<RevCommit>();
+        reduceStages(srcCommits.stream(),
+                     null,
+                     c -> findChildren(c, rw, children, visited),
+                     (null1, null2) -> null).thenAccept(null1 -> {})
+                                            .exceptionally(t -> { System.out.println("failed with: " + t); return null; } );
 
         SetMultimap<ObjectId, String> refNames = Multimaps.invertFrom(Multimaps.forMap(transformValues(repo.getAllRefs(),
                                                                                                        Ref::getObjectId)),
@@ -119,8 +94,7 @@ public final class GitGraph {
         commits.push(srcCommit);
 
         while(!commits.isEmpty()){
-            RevCommit commit = commits.pop();
-            rw.parseCommit(commit.getId());
+            RevCommit commit = rw.parseCommit(commits.pop().getId());
 
             if(visited.contains(commit)){
                 continue;
