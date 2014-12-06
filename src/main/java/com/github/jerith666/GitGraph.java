@@ -70,11 +70,13 @@ public final class GitGraph {
         }
 
         for(Entry<RevCommit, Collection<RevCommit>> childEntry : children.asMap().entrySet()){
-            if(refNames.containsKey(childEntry.getKey().getId())){
-                System.out.println(refNames.get(childEntry.getKey().getId()) + " = " + childEntry.getKey().getId());
+            ObjectId commitId = childEntry.getKey().getId();
+            if(refNames.containsKey(commitId)){
+                System.out.println("children of named commit " + refNames.get(commitId) + ":");
                 for(RevCommit c : childEntry.getValue()){
                     System.out.println("  -> " + c);
                 }
+                System.out.println();
             }
         }
     }
