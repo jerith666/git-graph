@@ -8,6 +8,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BinaryOperator;
 import java.util.stream.Stream;
 
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.SetMultimap;
+
 public final class MonadUtils {
     @FunctionalInterface
     public static interface ExceptionalFunction<T,R,E extends Throwable>{
@@ -31,6 +34,14 @@ public final class MonadUtils {
             m.putAll(m2);
             return m;
          };
+    }
+
+    public static <K,V> BinaryOperator<SetMultimap<K,V>> multimapCollapser(){
+        return (m1, m2) -> {
+            SetMultimap<K, V> m = LinkedHashMultimap.create(m1);
+            m.putAll(m2);
+            return m;
+        };
     }
 
     public static <T,R,E extends Throwable> CompletableFuture<R> reduceStages(Stream<T> source,

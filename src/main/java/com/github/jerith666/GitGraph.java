@@ -52,14 +52,14 @@ public final class GitGraph {
                                                   .map(rw::lookupCommit)
                                                   .collect(toSet());
 
-        //TODO these make the following stream op stateful
-        SetMultimap<RevCommit, RevCommit> children = LinkedHashMultimap.create();
-        Set<RevCommit> visited = new LinkedHashSet<RevCommit>();
         reduceStages(srcCommits.stream(),
-                     null,
-                     c -> findChildren(c, rw, children, visited),
-                     (null1, null2) -> null).exceptionally(t -> { System.out.println("failed with: " + t); return null; } );
+                     LinkedHashMultimap.create(),
+                     c -> findChildren(c, rw),
+                     multimapCollapser()).thenAccept(children -> processChildren(repo, srcCommits, children))
+                                         .exceptionally(t -> { System.out.println("failed with: " + t); return null; } );
+    }
 
+    private static void processChildren(Repository repo, Set<RevCommit> srcCommits, SetMultimap<RevCommit, RevCommit> children){
         SetMultimap<ObjectId, String> refNames = Multimaps.invertFrom(Multimaps.forMap(transformValues(repo.getAllRefs(),
                                                                                                        Ref::getObjectId)),
                                                                       LinkedHashMultimap.create());
@@ -83,7 +83,10 @@ public final class GitGraph {
 
     }
 
-    private static Void findChildren(RevCommit srcCommit, RevWalk rw, SetMultimap<RevCommit, RevCommit> children, Set<RevCommit> visited) throws MissingObjectException, IncorrectObjectTypeException, IOException{
+    private static SetMultimap<RevCommit, RevCommit> findChildren(RevCommit srcCommit, RevWalk rw) throws MissingObjectException, IncorrectObjectTypeException, IOException{
+        SetMultimap<RevCommit, RevCommit> children = LinkedHashMultimap.create();
+        Set<RevCommit> visited = new LinkedHashSet<RevCommit>();
+
         Deque<RevCommit> commits = new LinkedList<>();
         commits.push(srcCommit);
 
@@ -101,6 +104,6 @@ public final class GitGraph {
             });
         }
 
-        return null;
+        return children;
     }
 }
