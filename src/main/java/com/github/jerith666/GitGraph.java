@@ -1,6 +1,7 @@
 package com.github.jerith666;
 
 import static com.google.common.collect.Maps.*;
+import static java.util.Arrays.*;
 import static java.util.stream.Collectors.*;
 import static org.eclipse.jgit.lib.Constants.*;
 
@@ -20,7 +21,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
@@ -32,9 +32,7 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
-import com.google.common.base.Function;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 
@@ -101,6 +99,7 @@ public final class GitGraph {
         for(RevCommit srcCommit : srcCommits){
             plotTree(srcCommit, children, plotted, refNames);
         }
+
         for(Entry<RevCommit, Collection<RevCommit>> childEntry : children.asMap().entrySet()){
             if(refNames.containsKey(childEntry.getKey().getId())){
                 System.out.println(refNames.get(childEntry.getKey().getId()) + " = " + childEntry.getKey().getId());
@@ -128,10 +127,10 @@ public final class GitGraph {
             }
             visited.add(commit);
 
-            for(RevCommit parent : commit.getParents()){
+            asList(commit.getParents()).forEach(parent -> {
                 children.put(parent, commit);
                 commits.push(parent);
-            }
+            });
         }
 
         return null;
