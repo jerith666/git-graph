@@ -47,15 +47,15 @@ public final class GitGraph {
                                     .exceptionally(t -> { System.out.println("failed with: " + t); return null; } );
     }
 
-    private static void processSrcCommits(Repository repo, Map<String, Ref> refMap){
+    private static void processSrcCommits(Repository repo, Map<String, Ref> srcCommitNames){
         //new LinkedHashMap<>(refMap).entrySet().forEach(System.out::println);
 
         RevWalk rw = new RevWalk(repo);
 
-        Set<RevCommit> srcCommits = refMap.values().stream()
-                                          .map(Ref::getObjectId)
-                                          .map(rw::lookupCommit)
-                                          .collect(toSet());
+        Set<RevCommit> srcCommits = srcCommitNames.values().stream()
+                                                  .map(Ref::getObjectId)
+                                                  .map(rw::lookupCommit)
+                                                  .collect(toSet());
 
         //TODO these make the following stream op stateful
         SetMultimap<RevCommit, RevCommit> children = LinkedHashMultimap.create();
