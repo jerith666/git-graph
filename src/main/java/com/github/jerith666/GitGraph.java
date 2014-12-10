@@ -160,13 +160,13 @@ public final class GitGraph {
         }
     }
 
-    private static void makeEdge(RevCommit c1, RevCommit c2) {
-        System.out.println("\"" + c1.getId().name() + "\" -> \"" + c2.getId().name() + "\"");//TODO weight, color
+    private static String makeEdge(RevCommit c1, RevCommit c2) {
+        return "\"" + c1.getId().name() + "\" -> \"" + c2.getId().name() + "\"";//TODO weight, color
     }
 
-    private static void makeNode(RevCommit commit,
-                                 SetMultimap<ObjectId, String> refNames,
-                                 String prefix) {
+    private static String makeNode(RevCommit commit,
+                                   SetMultimap<ObjectId, String> refNames,
+                                   String prefix) {
         String label;
         if(refNames.containsKey(commit.getId())){
             label = refNames.get(commit.getId())
@@ -178,9 +178,10 @@ public final class GitGraph {
             label = escapeXml(commit.getShortMessage());
         }
 
-        String style = refNames.containsKey(commit.getId()) ? "" : "style=filled fillcolor=gray75";
+        String style = refNames.containsKey(commit.getId()) ? "" : " style=filled fillcolor=gray75";
 
-        System.out.println("\"" + prefix + commit.getId().name() + "\" [label=<<font>" + label + "</font>> " + style + "];");
+        return "\"" + prefix + commit.getId().name() +
+               "\" [label=<<font>" + label + "</font>>" + style + "];";
     }
 
     private static String colorForType(String name) {
