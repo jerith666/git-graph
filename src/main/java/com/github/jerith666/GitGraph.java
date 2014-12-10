@@ -38,6 +38,7 @@ import com.google.common.collect.SetMultimap;
 
 public final class GitGraph {
     public static void main(String[] args) throws IOException {
+        System.out.println("Digraph Git { rankdir=LR;");
         final Repository repo = new FileRepositoryBuilder().findGitDir(new File(args[0]))
                                                            .setMustExist(true)
                                                            .build();
@@ -47,6 +48,8 @@ public final class GitGraph {
                      repo.getRefDatabase()::getRefs,
                      mapCollapser()).thenAccept(refMap -> processSrcCommits(repo, refMap))
                                     .exceptionally(t -> { System.out.println("failed with: " + t); return null; } );
+
+        System.out.println("}");
     }
 
     private static void processSrcCommits(Repository repo, Map<String, Ref> srcCommitNames){
