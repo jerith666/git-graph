@@ -76,22 +76,6 @@ public final class GitGraph {
         for(RevCommit srcCommit : srcCommits){
             plotTree(srcCommit, children, plotted, refNames);
         }
-
-        debugSrcChildren(children, refNames);
-    }
-
-    private static void debugSrcChildren(SetMultimap<RevCommit, RevCommit> children,
-                                         SetMultimap<ObjectId, String> refNames) {
-        for(Entry<RevCommit, Collection<RevCommit>> childEntry : children.asMap().entrySet()){
-            ObjectId commitId = childEntry.getKey().getId();
-            if(refNames.containsKey(commitId)){
-                System.out.println("children of named commit " + refNames.get(commitId) + ":");
-                for(RevCommit c : childEntry.getValue()){
-                    System.out.println("  -> " + c);
-                }
-                System.out.println();
-            }
-        }
     }
 
     private static void plotTree(RevCommit srcCommit,
