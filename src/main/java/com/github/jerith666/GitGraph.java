@@ -140,6 +140,17 @@ public final class GitGraph {
         }
     }
 
+    private static void makeNode(RevCommit commit,
+                                 SetMultimap<ObjectId, String> refNames) {
+        String label;
+        if(refNames.containsKey(commit.getId())){
+            label = refNames.get(commit.getId()).stream().map(name -> name).reduce()
+        }
+        else{
+            label = commit.getShortMessage();
+        }
+    }
+
     private static boolean isInteresting(RevCommit commit,
                                          SetMultimap<RevCommit, RevCommit> children,
                                          SetMultimap<ObjectId, String> refNames) {
