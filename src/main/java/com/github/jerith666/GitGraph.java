@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.errors.MissingObjectException;
+import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -105,7 +106,7 @@ public final class GitGraph {
             }
 
             if(isInteresting(commit, children, refNames)){
-                makeNode(commit, refNames);
+                makeNode(commit, refNames, "");
                 boring = new ArrayList<>();
             }
             else{
@@ -140,14 +141,69 @@ public final class GitGraph {
         }
     }
 
+    private static void makeEdgeToElision(RevCommit commit, RevCommit firstBoring) {
+        System.out.println("\"elide." + firstBoring.name() + "\" -> \"" + commit.name() + "\"");//TODO weight, color [weight=#{edge_weight(first_boring,commit)} #{color(first_boring)}];");
+    }
+
+    private static void makeElision(List<RevCommit> boring, RevCommit c) {
+        if(boring.size() == 0){
+            return;
+        }
+
+        if(boring.size() == 1){
+            makeNode(boring.get(0), Multimaps.forMap(emptyMap()), "elide.");
+        }
+        else{
+            /*since we're traversing backwards in time by following parent links,
+              the boring_commits list is in reverse chronological order
+              (see issue 2)*/
+            String rangeids = boring.get(boring.size()-1).abbreviate(6).name() +
+                              ".." +
+                              boring.get(0).abbreviate(6).name();
+            String rangedesc = boring.size() + " commits";
+            String fill = "style=filled fillcolor=gray75";
+            System.out.println("\"elide." + boring.get(0).name() +
+                               "\" [label=<<font>" + rangedesc +
+                               "<br/>" + rangeids + "</font>> " + fill + "];");
+        }
+
+        if(c != null){
+            System.out.println("\"" + c.name() + "\" -> \"elide." + boring.get(0).name() + "\"");//TODO weight, color [weight=#{edge_weight(interesting_commit,boring_commits.first)} #{color(interesting_commit)}];");
+        }
+    }
+
+    private static void makeEdge(RevCommit c1, RevCommit c2) {
+        System.out.println("\"" + c1.getId().name() + "\" -> \"" + c2.getId().name() + "\"");//TODO weight, color
+    }
+
     private static void makeNode(RevCommit commit,
-                                 SetMultimap<ObjectId, String> refNames) {
+                                 SetMultimap<ObjectId, String> refNames,
+                                 String prefix) {
         String label;
         if(refNames.containsKey(commit.getId())){
-            label = refNames.get(commit.getId()).stream().map(name -> name).reduce()
+            label = refNames.get(commit.getId())
+                            .stream()
+                            .map(name -> "<font color=\"" + colorForType(name) + "\">" + name + "</font>")
+                            .collect(joining());
         }
         else{
             label = commit.getShortMessage();
+        }
+
+        String style = refNames.containsKey(commit.getId()) ? "" : "style=filled fillcolor=gray75";
+
+        System.out.println("\"" + prefix + commit.getId().name() + "\" [label=<<font>" + label + "</font>> " + style + "];");
+    }
+
+    private static String colorForType(String name) {
+        if(name.startsWith(Constants.R_TAGS)){
+            return "gold3";
+        }
+        else if(name.startsWith(Constants.R_HEADS)){
+            return "forestgreen";
+        }
+        else{
+            return "orange3";
         }
     }
 
