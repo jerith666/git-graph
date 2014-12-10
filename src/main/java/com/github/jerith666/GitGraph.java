@@ -7,18 +7,17 @@ import static java.util.Collections.*;
 import static java.util.stream.Collectors.*;
 import static org.apache.commons.lang.StringEscapeUtils.*;
 import static org.eclipse.jgit.lib.Constants.*;
+import static org.eclipse.jgit.lib.Repository.*;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -172,8 +171,8 @@ public final class GitGraph {
         if(refNames.containsKey(commit.getId())){
             label = refNames.get(commit.getId())
                             .stream()
-                            .map(name -> "<font color=\"" + colorForType(name) + "\">" + name + "</font>")
-                            .collect(joining());
+                            .map(name -> "<font color=\"" + colorForType(name) + "\">" + shortenRefName(name) + "</font>")
+                            .collect(joining("<br/>"));
         }
         else{
             label = escapeXml(commit.getShortMessage());
