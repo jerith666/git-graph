@@ -104,6 +104,7 @@ public final class GitGraph {
             Pair<RevCommit, List<RevCommit>> nextData = toPlot.get(0);
             RevCommit commit = nextData._t;
             List<RevCommit> boring = nextData._u;
+            toPlot = toPlot.subList(1, toPlot.size());
 
             if(plotted.contains(commit)){
                 continue;
