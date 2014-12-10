@@ -5,6 +5,7 @@ import static com.google.common.collect.Maps.*;
 import static java.util.Arrays.*;
 import static java.util.Collections.*;
 import static java.util.stream.Collectors.*;
+import static org.apache.commons.lang.StringEscapeUtils.*;
 import static org.eclipse.jgit.lib.Constants.*;
 
 import java.io.File;
@@ -187,7 +188,7 @@ public final class GitGraph {
                             .collect(joining());
         }
         else{
-            label = commit.getShortMessage();
+            label = escapeXml(commit.getShortMessage());
         }
 
         String style = refNames.containsKey(commit.getId()) ? "" : "style=filled fillcolor=gray75";
