@@ -142,17 +142,10 @@ public final class GitGraph {
 
     private static boolean isInteresting(RevCommit commit,
                                          SetMultimap<RevCommit, RevCommit> children,
-                                         SetMultimap<ObjectId, String> refNames,
-                                         int neighbor) {
+                                         SetMultimap<ObjectId, String> refNames) {
         return commit.getParentCount() > 1 ||
                children.get(commit).size() > 1 ||
-               refNames.containsKey(commit.getId()) ||
-               (neighbor > 0 && (asList(commit.getParents()).stream()
-                                              .filter(c -> isInteresting(c, children, refNames, neighbor-1))
-                                              .findAny().isPresent()) ||
-                                 children.get(commit).stream()
-                                         .filter(c -> isInteresting(c, children, refNames, neighbor-1))
-                                         .findAny().isPresent());
+               refNames.containsKey(commit.getId());
     }
 
     private static SetMultimap<RevCommit, RevCommit> findChildren(RevCommit srcCommit, RevWalk rw) throws MissingObjectException, IncorrectObjectTypeException, IOException{
