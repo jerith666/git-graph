@@ -2,6 +2,7 @@ package com.github.jerith666;
 
 import static com.github.jerith666.MonadUtils.*;
 import static com.google.common.collect.Maps.*;
+import static com.nurkiewicz.typeof.TypeOf.*;
 import static java.util.Arrays.*;
 import static java.util.Collections.*;
 import static java.util.stream.Collectors.*;
@@ -160,8 +161,8 @@ public final class GitGraph {
         }
     }
 
-    private static String makeEdge(RevCommit c1, RevCommit c2) {
-        return "\"" + c1.getId().name() + "\" -> \"" + c2.getId().name() + "\"";//TODO weight, color
+    private static GraphEdge makeEdge(RevCommit c1, RevCommit c2) {
+        return GraphEdge.forParentChild(c2, c1);
     }
 
     private static String makeNode(RevCommit commit,
@@ -194,6 +195,29 @@ public final class GitGraph {
         else{
             return "orange3";
         }
+    }
+
+    private static String outputGraph(Set<GraphEntity> graphData){
+        return graphData.stream()
+                        .map(GitGraph::outputEntity)
+                        .collect(joining());
+    }
+
+    private static String outputEntity(GraphEntity entity){
+        return whenTypeOf(entity)
+
+          .is(GraphEdge.class)
+          .thenReturn(edge -> "\"" + edge.getChild().getId().name() +
+                              "\" -> \"" +
+                              edge.getParent().getId().name() + "\"")//TODO weight, color)
+
+          .is(InterestingGraphNode.class)
+          .thenReturn(inode -> "")
+
+          .is(ElidedGraphNode.class)
+          .thenReturn(enode -> "")
+
+          .get();
     }
 
     private static boolean isInteresting(RevCommit commit,
