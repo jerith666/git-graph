@@ -161,28 +161,15 @@ public final class GitGraph {
         }
     }
 
-    private static GraphEdge makeEdge(RevCommit c1, RevCommit c2) {
-        return GraphEdge.forParentChild(c2, c1);
+    private static GraphEdge makeEdge(RevCommit child, RevCommit parent) {
+        return GraphEdge.forParentChild(parent, child);
     }
 
-    private static String makeNode(RevCommit commit,
-                                   SetMultimap<ObjectId, String> refNames,
-                                   String prefix) {
-        String label;
-        if(refNames.containsKey(commit.getId())){
-            label = refNames.get(commit.getId())
-                            .stream()
-                            .map(name -> "<font color=\"" + colorForType(name) + "\">" + shortenRefName(name) + "</font>")
-                            .collect(joining("<br/>"));
-        }
-        else{
-            label = escapeXml(commit.getShortMessage());
-        }
-
-        String style = refNames.containsKey(commit.getId()) ? "" : " style=filled fillcolor=gray75";
-
-        return "\"" + prefix + commit.getId().name() +
-               "\" [label=<<font>" + label + "</font>>" + style + "];";
+    private static InterestingGraphNode makeNode(RevCommit commit,
+                                                 SetMultimap<ObjectId, String> refNames,
+                                                 String prefix) {
+        return InterestingGraphNode.forNode(commit,
+                                            refNames.get(commit.getId()));
     }
 
     private static String colorForType(String name) {
@@ -200,7 +187,7 @@ public final class GitGraph {
     private static String outputGraph(Set<GraphEntity> graphData){
         return graphData.stream()
                         .map(GitGraph::outputEntity)
-                        .collect(joining());
+                        .collect(joining("\n"));
     }
 
     private static String outputEntity(GraphEntity entity){
@@ -212,7 +199,22 @@ public final class GitGraph {
                               edge.getParent().getId().name() + "\"")//TODO weight, color)
 
           .is(InterestingGraphNode.class)
-          .thenReturn(inode -> "")
+          .thenReturn(inode -> {
+              String label;
+              if(inode.getNames().isEmpty()){
+                  label = escapeXml(inode.getCommit().getShortMessage());
+              }
+              else{
+                  label = inode.getNames().stream()
+                               .map(name -> "<font color=\"" + colorForType(name) + "\">" + shortenRefName(name) + "</font>")
+                               .collect(joining("<br/>"));
+              }
+
+              String style = inode.getNames().isEmpty() ? " style=filled fillcolor=gray75" : "";
+
+              return "\"" + prefix + inode.getCommit().getId().name() +
+                      "\" [label=<<font>" + label + "</font>>" + style + "];";
+          })
 
           .is(ElidedGraphNode.class)
           .thenReturn(enode -> "")
