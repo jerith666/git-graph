@@ -1,5 +1,5 @@
 package com.github.jerith666;
 
-public interface GraphNode {
+public interface GraphNode extends GraphEntity {
     
 }

@@ -7,7 +7,7 @@ import org.eclipse.jgit.revwalk.RevCommit;
 
 import com.google.common.collect.ImmutableSet;
 
-public interface InterestingGraphNode {
+public interface InterestingGraphNode extends GraphNode {
     RevCommit getCommit();
     Set<String> getNames();
 
