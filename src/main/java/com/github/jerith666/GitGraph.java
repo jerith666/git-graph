@@ -63,25 +63,32 @@ public final class GitGraph {
         reduceStages(srcCommits.stream(),
                      LinkedHashMultimap.create(),
                      c -> findChildren(c, rw),
-                     multimapCollapser()).thenAccept(children -> processChildren(repo, srcCommits, children))
+                     multimapCollapser()).thenApply(children -> processChildren(repo, srcCommits, children))
+                                         .thenApply(entities -> entities.stream().map(GitGraph::formatEntity).collect(joining()))
+                                         .thenAccept(System.out::println)
                                          .exceptionally(t -> { System.out.println("failed with: " + t); return null; } );
     }
 
-    private static void processChildren(Repository repo, Set<RevCommit> srcCommits, SetMultimap<RevCommit, RevCommit> children){
+    private static Set<GraphEntity> processChildren(Repository repo,
+                                                    Set<RevCommit> srcCommits,
+                                                    SetMultimap<RevCommit, RevCommit> children){
         SetMultimap<ObjectId, String> refNames = Multimaps.invertFrom(Multimaps.forMap(transformValues(repo.getAllRefs(),
                                                                                                        Ref::getObjectId)),
                                                                       LinkedHashMultimap.create());
 
         Set<RevCommit> plotted = new LinkedHashSet<>();
+        Set<GraphEntity> entities = new LinkedHashSet<GraphEntity>();
         for(RevCommit srcCommit : srcCommits){
-            plotTree(srcCommit, children, plotted, refNames);
+            entities.addAll(plotTree(srcCommit, children, plotted, refNames));
         }
+        return entities;
     }
 
-    private static void plotTree(RevCommit srcCommit,
-                                 SetMultimap<RevCommit, RevCommit> children,
-                                 Set<RevCommit> plotted,
-                                 SetMultimap<ObjectId, String> refNames){
+    private static Set<GraphEntity> plotTree(RevCommit srcCommit,
+                                             SetMultimap<RevCommit, RevCommit> children,
+                                             Set<RevCommit> plotted,
+                                             SetMultimap<ObjectId, String> refNames){
+        Set<GraphEntity> entities = new LinkedHashSet<>();
         List<Pair<RevCommit,List<RevCommit>>> toPlot = new ArrayList<>(singletonList(new Pair<>(srcCommit, new ArrayList<>())));
 
         while(!toPlot.isEmpty()){
@@ -96,7 +103,7 @@ public final class GitGraph {
 
             boolean commitInteresting = isInteresting(commit, children, refNames);
             if(commitInteresting){
-                makeNode(commit, refNames, "");
+                entities.add(makeNode(commit, refNames, ""));
                 boring = new ArrayList<>();
             }
             else{
@@ -107,15 +114,15 @@ public final class GitGraph {
             for(RevCommit parent : commit.getParents()){
                 if(isInteresting(parent, children, refNames)){
                     if(commitInteresting){
-                        makeEdge(commit, parent);
+                        entities.add(makeEdge(commit, parent));
                     }
                     else if(!boring.isEmpty()){
-                        makeElision(boring, parent);
+                        entities.addAll(makeElision(boring, parent));
                     }
                     boring = new ArrayList<>();//TODO not quite right ... need sub-boring list within inner loop
                 }
                 else if(commitInteresting){
-                    makeEdgeToElision(commit, parent);
+                    entities.add(makeEdgeToElision(commit, parent));
                 }
 
                 parentsToPlot.add(0, new Pair<>(parent, boring));
@@ -124,11 +131,13 @@ public final class GitGraph {
             toPlot.addAll(0, parentsToPlot);
 
             if(commit.getParents().length == 0 && !boring.isEmpty()){
-                makeElision(boring, null);
+                entities.addAll(makeElision(boring, null));
             }
 
             plotted.add(commit);
         }
+
+        return entities;
     }
 
     private static GraphEdge makeEdgeToElision(RevCommit child, RevCommit boringParent) {
