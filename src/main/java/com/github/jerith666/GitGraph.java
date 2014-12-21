@@ -130,8 +130,8 @@ public final class GitGraph {
         }
     }
 
-    private static void makeEdgeToElision(RevCommit commit, RevCommit firstBoring) {
-        System.out.println("\"elide." + firstBoring.name() + "\" -> \"" + commit.name() + "\"");//TODO weight, color [weight=#{edge_weight(first_boring,commit)} #{color(first_boring)}];");
+    private static void makeEdgeToElision(RevCommit child, RevCommit boringParent) {
+        return GraphEdge.forBoringParentChild(boringParent, child);
     }
 
     private static void makeElision(List<RevCommit> boring, RevCommit c) {
@@ -194,9 +194,12 @@ public final class GitGraph {
         return whenTypeOf(entity)
 
           .is(GraphEdge.class)
-          .thenReturn(edge -> "\"" + edge.getChild().getId().name() +
-                              "\" -> \"" +
-                              edge.getParent().getId().name() + "\"")//TODO weight, color)
+          .thenReturn(edge -> edge.parentIsBoring() ? ("\"elide." + edge.getParent().getId().name() +
+                                                       "\" -> \"" +
+                                                       edge.getChild().getId().name() + "\"")//TODO weight, color [weight=#{edge_weight(first_boring,commit)} #{color(first_boring)}];");
+                                                    : ("\"" + edge.getChild().getId().name() +
+                                                       "\" -> \"" +
+                                                       edge.getParent().getId().name() + "\""))//TODO weight, color)
 
           .is(InterestingGraphNode.class)
           .thenReturn(inode -> {
