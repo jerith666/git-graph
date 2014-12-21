@@ -60,14 +60,14 @@ public final class GitGraph {
                                                   .collect(toSet());
 
         return reduceStages(srcCommits.stream(),
-                     LinkedHashMultimap.create(),
-                     c -> findChildren(c, rw),
-                     multimapCollapser()).thenApply(children -> processChildren(repo, srcCommits, children))
-                                         .thenApply(entities -> entities.stream()
-                                                                        .map(GitGraph::formatEntity)
-                                                                        .collect(joining("\n",
-                                                                                         "Digraph Git { rankdir=LR;\n",
-                                                                                         "\n}")));
+                            LinkedHashMultimap.create(),
+                            c -> findChildren(c, rw),
+                            multimapCollapser()).thenApply(children -> processChildren(repo, srcCommits, children))
+                                                .thenApply(entities -> entities.stream()
+                                                                               .map(GitGraph::formatEntity)
+                                                                               .collect(joining("\n",
+                                                                                                "Digraph Git { rankdir=BT;\n",
+                                                                                                "\n}")));
     }
 
     private static Set<GraphEntity> processChildren(Repository repo,
