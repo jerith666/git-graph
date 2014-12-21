@@ -13,7 +13,6 @@ import static org.eclipse.jgit.lib.Repository.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedHashSet;
@@ -137,16 +136,11 @@ public final class GitGraph {
     }
 
     private static List<GraphEntity> makeElision(List<RevCommit> boringChildren, RevCommit interestingParent) {
-        GraphNode boringNode;
-        if(boringChildren.size() == 1){
-            boringNode = makeNode(boringChildren.get(0), Multimaps.forMap(emptyMap()), "elide.");
-        }
-        else{
-            boringNode = ElidedGraphNode.forCommits(boringChildren);
-        }
+        GraphNode boringNode = ElidedGraphNode.forCommits(boringChildren);
 
         if(interestingParent != null){
-            return asList(boringNode, GraphEdge.forParentBoringChild(interestingParent, boringChildren.get(0)));
+            return asList(boringNode,
+                          GraphEdge.forParentBoringChild(interestingParent, boringChildren.get(0)));
         }
         else{
             return asList(boringNode);
@@ -199,9 +193,14 @@ public final class GitGraph {
 
     private static String formatElidedGraphNode(ElidedGraphNode enode){
         List<RevCommit> boringChildren = enode.getBoringCommits();
-        /*since we're traversing backwards in time by following parent links,
-        the boring_commits list is in reverse chronological order
-        (see issue 2)*/
+        if(boringChildren.size() == 1){
+            return "\"elide." + boringChildren.get(0).getId().name() +
+                   "\" [label=<<font>" + escapeXml(boringChildren.get(0).getShortMessage()) +
+                   "</font>>" + " style=filled fillcolor=gray75" + "];";
+        }
+
+        /* since we're traversing backwards in time by following parent links,
+         * the boring_commits list is in reverse chronological order (see issue 2) */
         String rangeids = boringChildren.get(boringChildren.size()-1).abbreviate(6).name() +
                           ".." +
                           boringChildren.get(0).abbreviate(6).name();
@@ -225,7 +224,7 @@ public final class GitGraph {
 
         String style = inode.getNames().isEmpty() ? " style=filled fillcolor=gray75" : "";
 
-        return "\"" + prefix + inode.getCommit().getId().name() +
+        return "\"" + inode.getCommit().getId().name() +
                 "\" [label=<<font>" + label + "</font>>" + style + "];";
     }
 
