@@ -130,7 +130,7 @@ public final class GitGraph {
         }
     }
 
-    private static void makeEdgeToElision(RevCommit child, RevCommit boringParent) {
+    private static GraphEdge makeEdgeToElision(RevCommit child, RevCommit boringParent) {
         return GraphEdge.forBoringParentChild(boringParent, child);
     }
 
