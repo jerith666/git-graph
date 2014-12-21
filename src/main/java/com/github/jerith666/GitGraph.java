@@ -108,7 +108,7 @@ public final class GitGraph {
                     if(isInteresting(commit, children, refNames)){
                         makeEdge(commit, c);
                     }
-                    else{
+                    else if(!boring.isEmpty()){
                         makeElision(boring, c);
                     }
                     boring = new ArrayList<>();//TODO not quite right ... need sub-boring list within inner loop
@@ -122,7 +122,7 @@ public final class GitGraph {
 
             toPlot.addAll(0, parentsToPlot);
 
-            if(commit.getParents().length == 0){
+            if(commit.getParents().length == 0 && !boring.isEmpty()){
                 makeElision(boring, null);
             }
 
@@ -134,13 +134,9 @@ public final class GitGraph {
         return GraphEdge.forBoringParentChild(boringParent, child);
     }
 
-    private static void makeElision(List<RevCommit> boring, RevCommit c) {
-        if(boring.size() == 0){
-            return;
-        }
-
+    private static GraphNode makeElision(List<RevCommit> boring, RevCommit c) {
         if(boring.size() == 1){
-            makeNode(boring.get(0), Multimaps.forMap(emptyMap()), "elide.");
+            return makeNode(boring.get(0), Multimaps.forMap(emptyMap()), "elide.");
         }
         else{
             /*since we're traversing backwards in time by following parent links,
