@@ -20,6 +20,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
@@ -38,7 +39,6 @@ import com.google.common.collect.SetMultimap;
 
 public final class GitGraph {
     public static void main(String[] args) throws IOException {
-        System.out.println("Digraph Git { rankdir=LR;");
         final Repository repo = new FileRepositoryBuilder().findGitDir(new File(args[0]))
                                                            .setMustExist(true)
                                                            .build();
@@ -46,13 +46,12 @@ public final class GitGraph {
         reduceStages(Stream.of(R_HEADS, R_REMOTES, R_TAGS),
                      Collections.emptyMap(),
                      repo.getRefDatabase()::getRefs,
-                     mapCollapser()).thenAccept(refMap -> processSrcCommits(repo, refMap))
+                     mapCollapser()).thenCompose(refMap -> processSrcCommits(repo, refMap))
+                                    .thenAccept(System.out::println)
                                     .exceptionally(t -> { System.out.println("failed with: " + t); return null; } );
-
-        System.out.println("}");
     }
 
-    private static void processSrcCommits(Repository repo, Map<String, Ref> srcCommitNames){
+    private static CompletableFuture<String> processSrcCommits(Repository repo, Map<String, Ref> srcCommitNames){
         RevWalk rw = new RevWalk(repo);
 
         Set<RevCommit> srcCommits = srcCommitNames.values().stream()
@@ -60,13 +59,15 @@ public final class GitGraph {
                                                   .map(rw::lookupCommit)
                                                   .collect(toSet());
 
-        reduceStages(srcCommits.stream(),
+        return reduceStages(srcCommits.stream(),
                      LinkedHashMultimap.create(),
                      c -> findChildren(c, rw),
                      multimapCollapser()).thenApply(children -> processChildren(repo, srcCommits, children))
-                                         .thenApply(entities -> entities.stream().map(GitGraph::formatEntity).collect(joining()))
-                                         .thenAccept(System.out::println)
-                                         .exceptionally(t -> { System.out.println("failed with: " + t); return null; } );
+                                         .thenApply(entities -> entities.stream()
+                                                                        .map(GitGraph::formatEntity)
+                                                                        .collect(joining("\n",
+                                                                                         "Digraph Git { rankdir=LR;\n",
+                                                                                         "\n}")));
     }
 
     private static Set<GraphEntity> processChildren(Repository repo,
@@ -177,12 +178,6 @@ public final class GitGraph {
         else{
             return "orange3";
         }
-    }
-
-    private static String outputGraph(Set<GraphEntity> graphData){
-        return graphData.stream()
-                        .map(GitGraph::formatEntity)
-                        .collect(joining("\n"));
     }
 
     private static String formatEntity(GraphEntity entity){
