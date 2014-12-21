@@ -6,16 +6,21 @@ public interface GraphEdge extends GraphEntity {
     RevCommit getParent();
     RevCommit getChild();
     boolean parentIsBoring();
+    boolean childIsBoring();
 
     static GraphEdge forParentChild(RevCommit parent, RevCommit child){
-        return makeImpl(parent, child, false);
+        return makeImpl(parent, child, false, false);
     }
 
     static GraphEdge forBoringParentChild(RevCommit parent, RevCommit child){
-        return makeImpl(parent, child, true);
+        return makeImpl(parent, child, true, false);
     }
 
-    static GraphEdge makeImpl(RevCommit parent, RevCommit child, boolean parentIsBoring){
+    static GraphEdge forParentBoringChild(RevCommit parent, RevCommit child){
+        return makeImpl(parent, child, false, true);
+    }
+
+    static GraphEdge makeImpl(RevCommit parent, RevCommit child, boolean parentIsBoring, boolean childIsBoring){
         return new GraphEdge() {
             @Override
             public RevCommit getParent() {
@@ -30,6 +35,11 @@ public interface GraphEdge extends GraphEntity {
             @Override
             public boolean parentIsBoring() {
                 return parentIsBoring;
+            }
+
+            @Override
+            public boolean childIsBoring() {
+                return childIsBoring;
             }
         };
     }

@@ -13,6 +13,7 @@ import static org.eclipse.jgit.lib.Repository.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedHashSet;
@@ -94,7 +95,8 @@ public final class GitGraph {
                 continue;
             }
 
-            if(isInteresting(commit, children, refNames)){
+            boolean commitInteresting = isInteresting(commit, children, refNames);
+            if(commitInteresting){
                 makeNode(commit, refNames, "");
                 boring = new ArrayList<>();
             }
@@ -103,21 +105,21 @@ public final class GitGraph {
             }
 
             List<Pair<RevCommit,List<RevCommit>>> parentsToPlot = new ArrayList<>();
-            for(RevCommit c : commit.getParents()){
-                if(isInteresting(c, children, refNames)){
-                    if(isInteresting(commit, children, refNames)){
-                        makeEdge(commit, c);
+            for(RevCommit parent : commit.getParents()){
+                if(isInteresting(parent, children, refNames)){
+                    if(commitInteresting){
+                        makeEdge(commit, parent);
                     }
                     else if(!boring.isEmpty()){
-                        makeElision(boring, c);
+                        makeElision(boring, parent);
                     }
                     boring = new ArrayList<>();//TODO not quite right ... need sub-boring list within inner loop
                 }
-                else if(isInteresting(commit, children, refNames)){
-                    makeEdgeToElision(commit, c);
+                else if(commitInteresting){
+                    makeEdgeToElision(commit, parent);
                 }
 
-                parentsToPlot.add(0, new Pair<>(c, boring));
+                parentsToPlot.add(0, new Pair<>(parent, boring));
             }
 
             toPlot.addAll(0, parentsToPlot);
@@ -134,26 +136,20 @@ public final class GitGraph {
         return GraphEdge.forBoringParentChild(boringParent, child);
     }
 
-    private static GraphNode makeElision(List<RevCommit> boring, RevCommit c) {
-        if(boring.size() == 1){
-            return makeNode(boring.get(0), Multimaps.forMap(emptyMap()), "elide.");
+    private static List<GraphEntity> makeElision(List<RevCommit> boringChildren, RevCommit interestingParent) {
+        GraphNode boringNode;
+        if(boringChildren.size() == 1){
+            boringNode = makeNode(boringChildren.get(0), Multimaps.forMap(emptyMap()), "elide.");
         }
         else{
-            /*since we're traversing backwards in time by following parent links,
-              the boring_commits list is in reverse chronological order
-              (see issue 2)*/
-            String rangeids = boring.get(boring.size()-1).abbreviate(6).name() +
-                              ".." +
-                              boring.get(0).abbreviate(6).name();
-            String rangedesc = boring.size() + " commits";
-            String fill = "style=filled fillcolor=gray75";
-            System.out.println("\"elide." + boring.get(0).name() +
-                               "\" [label=<<font>" + rangedesc +
-                               "<br/>" + rangeids + "</font>> " + fill + "];");
+            boringNode = ElidedGraphNode.forCommits(boringChildren);
         }
 
-        if(c != null){
-            System.out.println("\"" + c.name() + "\" -> \"elide." + boring.get(0).name() + "\"");//TODO weight, color [weight=#{edge_weight(interesting_commit,boring_commits.first)} #{color(interesting_commit)}];");
+        if(interestingParent != null){
+            return asList(boringNode, GraphEdge.forParentBoringChild(interestingParent, boringChildren.get(0)));
+        }
+        else{
+            return asList(boringNode);
         }
     }
 
@@ -182,43 +178,73 @@ public final class GitGraph {
 
     private static String outputGraph(Set<GraphEntity> graphData){
         return graphData.stream()
-                        .map(GitGraph::outputEntity)
+                        .map(GitGraph::formatEntity)
                         .collect(joining("\n"));
     }
 
-    private static String outputEntity(GraphEntity entity){
+    private static String formatEntity(GraphEntity entity){
         return whenTypeOf(entity)
 
           .is(GraphEdge.class)
-          .thenReturn(edge -> edge.parentIsBoring() ? ("\"elide." + edge.getParent().getId().name() +
-                                                       "\" -> \"" +
-                                                       edge.getChild().getId().name() + "\"")//TODO weight, color [weight=#{edge_weight(first_boring,commit)} #{color(first_boring)}];");
-                                                    : ("\"" + edge.getChild().getId().name() +
-                                                       "\" -> \"" +
-                                                       edge.getParent().getId().name() + "\""))//TODO weight, color)
+          .thenReturn(GitGraph::formatEdge)
 
           .is(InterestingGraphNode.class)
-          .thenReturn(inode -> {
-              String label;
-              if(inode.getNames().isEmpty()){
-                  label = escapeXml(inode.getCommit().getShortMessage());
-              }
-              else{
-                  label = inode.getNames().stream()
-                               .map(name -> "<font color=\"" + colorForType(name) + "\">" + shortenRefName(name) + "</font>")
-                               .collect(joining("<br/>"));
-              }
-
-              String style = inode.getNames().isEmpty() ? " style=filled fillcolor=gray75" : "";
-
-              return "\"" + prefix + inode.getCommit().getId().name() +
-                      "\" [label=<<font>" + label + "</font>>" + style + "];";
-          })
+          .thenReturn(GitGraph::formatInterestingNode)
 
           .is(ElidedGraphNode.class)
-          .thenReturn(enode -> "")
+          .thenReturn(GitGraph::formatElidedGraphNode)
 
           .get();
+    }
+
+    private static String formatElidedGraphNode(ElidedGraphNode enode){
+        List<RevCommit> boringChildren = enode.getBoringCommits();
+        /*since we're traversing backwards in time by following parent links,
+        the boring_commits list is in reverse chronological order
+        (see issue 2)*/
+        String rangeids = boringChildren.get(boringChildren.size()-1).abbreviate(6).name() +
+                          ".." +
+                          boringChildren.get(0).abbreviate(6).name();
+        String rangedesc = boringChildren.size() + " commits";
+        String fill = "style=filled fillcolor=gray75";
+        return "\"elide." + boringChildren.get(0).name() +
+                "\" [label=<<font>" + rangedesc +
+                "<br/>" + rangeids + "</font>> " + fill + "];";
+    }
+
+    private static String formatInterestingNode(InterestingGraphNode inode){
+        String label;
+        if(inode.getNames().isEmpty()){
+            label = escapeXml(inode.getCommit().getShortMessage());
+        }
+        else{
+            label = inode.getNames().stream()
+                    .map(name -> "<font color=\"" + colorForType(name) + "\">" + shortenRefName(name) + "</font>")
+                    .collect(joining("<br/>"));
+        }
+
+        String style = inode.getNames().isEmpty() ? " style=filled fillcolor=gray75" : "";
+
+        return "\"" + prefix + inode.getCommit().getId().name() +
+                "\" [label=<<font>" + label + "</font>>" + style + "];";
+    }
+
+    private static String formatEdge(GraphEdge edge) {
+        if(edge.parentIsBoring()){
+            return "\"elide." + edge.getParent().getId().name() +
+                    "\" -> \"" +
+                    edge.getChild().getId().name() + "\"";//TODO weight, color [weight=#{edge_weight(first_boring,commit)} #{color(first_boring)}];");
+        }
+        else if(edge.childIsBoring()){
+            return "\"" + edge.getParent().name() +
+                   "\" -> \"elide." +
+                   edge.getChild().name() + "\"";//TODO weight, color [weight=#{edge_weight(interesting_commit,boring_commits.first)} #{color(interesting_commit)}];");
+        }
+        else{
+            return "\"" + edge.getChild().getId().name() +
+                   "\" -> \"" +
+                   edge.getParent().getId().name() + "\"";//TODO weight, color
+        }
     }
 
     private static boolean isInteresting(RevCommit commit,
