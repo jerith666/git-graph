@@ -15,12 +15,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
@@ -30,6 +32,8 @@ import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevObject;
+import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
@@ -48,16 +52,24 @@ public final class GitGraph {
                      repo.getRefDatabase()::getRefs,
                      mapCollapser()).thenCompose(refMap -> processSrcCommits(repo, refMap))
                                     .thenAccept(System.out::println)
-                                    .exceptionally(t -> { System.out.println("failed with: " + t); return null; } );
+                                    .exceptionally(t -> { System.out.println("failed with: " + t); t.printStackTrace(); return null; } );
     }
 
     private static CompletableFuture<String> processSrcCommits(Repository repo, Map<String, Ref> srcCommitNames){
         RevWalk rw = new RevWalk(repo);
 
-        Set<RevCommit> srcCommits = srcCommitNames.values().stream()
+        System.out.println("srcCommitNames:");
+        srcCommitNames.entrySet().forEach(System.out::println);
+
+        Set<RevObject> srcObjects = srcCommitNames.values().stream()
                                                   .map(Ref::getObjectId)
-                                                  .map(rw::lookupCommit)
+                                                  .map(id -> rw.lookupAny(id, -1))
                                                   .collect(toSet());
+        Set<RevCommit> srcCommits = srcObjects.stream()
+                                              .map(lookupObjectAsCommit(rw))
+                                              .collect(HashSet::new,
+                                                       (commits, nextCommit) -> null,
+                                                       mapCollapser());
 
         return reduceStages(srcCommits.stream(),
                             LinkedHashMultimap.create(),
@@ -68,6 +80,11 @@ public final class GitGraph {
                                                                                .collect(joining("\n",
                                                                                                 "Digraph Git { rankdir=BT;\n",
                                                                                                 "\n}")));
+    }
+
+    private static Function<RevObject, CompletableFuture<RevCommit>> lookupObjectAsCommit(RevWalk rw) {
+        return ro1 -> applyOrDie(ro1, ro -> ro.getType() == OBJ_COMMIT ? rw.lookupCommit(ro.getId())
+                                                                       : rw.lookupCommit(rw.peel(ro).getId()));
     }
 
     private static Set<GraphEntity> processChildren(Repository repo,
@@ -259,6 +276,8 @@ public final class GitGraph {
     }
 
     private static SetMultimap<RevCommit, RevCommit> findChildren(RevCommit srcCommit, RevWalk rw) throws MissingObjectException, IncorrectObjectTypeException, IOException{
+        boolean debug = srcCommit.getId().name().equalsIgnoreCase("6c4573d784caa3356678c8fbb71350225f0b7e4f");
+        System.out.println("findChildren: " + srcCommit + "; debug = " + debug);
         SetMultimap<RevCommit, RevCommit> children = LinkedHashMultimap.create();
         Set<RevCommit> visited = new LinkedHashSet<RevCommit>();
 
@@ -266,19 +285,39 @@ public final class GitGraph {
         commits.push(srcCommit);
 
         while(!commits.isEmpty()){
-            RevCommit commit = rw.parseCommit(commits.pop().getId());
+            ObjectId commitId = commits.pop().getId();
+            if(debug){
+                System.out.println(" commitId: " + commitId);
+            }
+            RevCommit commit = parseAsCommit(rw, commitId);
 
             if(visited.contains(commit)){
                 continue;
             }
             visited.add(commit);
 
-            asList(commit.getParents()).forEach(parent -> {
+            asList(commit.getParents())
+            .forEach(parent -> {
                 children.put(parent, commit);
+                if(debug){
+                    System.out.println("  " + commit + " --parent--> " + parent);
+                }
                 commits.push(parent);
             });
         }
 
         return children;
+    }
+
+    private static RevCommit parseAsCommit(RevWalk rw, ObjectId commitId) throws MissingObjectException, IOException, IncorrectObjectTypeException {
+        RevCommit commit;
+        try{
+            commit = rw.parseCommit(commitId);
+        }
+        catch(IncorrectObjectTypeException iote){
+            System.out.println(iote);
+            commit = rw.parseCommit(rw.peel(rw.parseTag(commitId)).getId());
+        }
+        return commit;
     }
 }
