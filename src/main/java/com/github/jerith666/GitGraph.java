@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
@@ -34,8 +33,6 @@ import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevObject;
-import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
@@ -76,18 +73,10 @@ public final class GitGraph {
     private static CompletableFuture<String> processSrcCommits(Repository repo, Collection<Ref> srcCommitNames){
         RevWalk rw = new RevWalk(repo);
 
-        System.out.println("srcCommitNames:");
-        srcCommitNames.forEach(System.out::println);
-
         Set<RevCommit> srcCommits = srcCommitNames.stream()
                                                   .map(Ref::getObjectId)
                                                   .map(rw::lookupCommit)
                                                   .collect(toSet());
-//        Set<RevCommit> srcCommits = srcObjects.stream()
-//                                              .map(lookupObjectAsCommit(rw))
-//                                              .collect(HashSet::new,
-//                                                       (commits, nextCommit) -> ,
-//                                                       mapCollapser());
 
         return reduceStages(srcCommits.stream(),
                             LinkedHashMultimap.create(),
@@ -98,11 +87,6 @@ public final class GitGraph {
                                                                                .collect(joining("\n",
                                                                                                 "Digraph Git { rankdir=BT;\n",
                                                                                                 "\n}")));
-    }
-
-    private static Function<RevObject, CompletableFuture<RevCommit>> lookupObjectAsCommit(RevWalk rw) {
-        return ro1 -> applyOrDie(ro1, ro -> ro.getType() == OBJ_COMMIT ? rw.lookupCommit(ro.getId())
-                                                                       : rw.lookupCommit(rw.peel(ro).getId()));
     }
 
     private static Set<GraphEntity> processChildren(Repository repo,
