@@ -5,6 +5,7 @@ import static com.google.common.collect.Maps.*;
 import static com.nurkiewicz.typeof.TypeOf.*;
 import static java.util.Arrays.*;
 import static java.util.Collections.*;
+import static java.util.concurrent.CompletableFuture.*;
 import static java.util.stream.Collectors.*;
 import static org.apache.commons.lang.StringEscapeUtils.*;
 import static org.eclipse.jgit.lib.Constants.*;
@@ -51,15 +52,15 @@ public final class GitGraph {
         CompletableFuture<Collection<Ref>> commitRefs = findRefsUnder(Stream.of(R_HEADS, R_REMOTES), repo);
 
         RevWalk rw = new RevWalk(repo);
-        /*CompletableFuture<Collection<RevCommit>> tagRefs =*/ findRefsUnder(Stream.of(R_TAGS), repo)
-                .thenApply(tRefs -> tRefs.stream()
+        CompletableFuture<Collection<RevCommit>> tagRefs = findRefsUnder(Stream.of(R_TAGS), repo)
+                .thenCompose(tRefs -> tRefs.stream()
                                          .map(Ref::getObjectId)
                                          .map(rw::lookupTag)
                                          .map(applyOrDie(revTag -> rw.peel(revTag)))
                                          .map(cfro -> cfro.thenApply(rw::lookupCommit))
-                                         .<CompletableFuture<Collection<RevCommit>>>reduce(CompletableFuture.completedFuture(Collections.emptySet()),
-                                                 (CompletableFuture<Collection<RevCommit>> rcs, CompletableFuture<RevCommit> rc) -> null,
-                                                 (CompletableFuture<Collection<RevCommit>> rcs1, CompletableFuture<Collection<RevCommit>> rcs2) -> null));
+                                         .reduce(completedFuture(emptySet()),
+                                                 (rcs, rc) -> null,
+                                                 (rcs1, rcs2) -> null));
 
         commitRefs.thenCompose(refMap -> processSrcCommits(repo, refMap))
                                     .thenAccept(System.out::println)
