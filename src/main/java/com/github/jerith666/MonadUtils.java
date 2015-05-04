@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import com.google.common.collect.LinkedHashMultimap;
@@ -15,6 +16,10 @@ public final class MonadUtils {
     @FunctionalInterface
     public static interface ExceptionalFunction<T,R,E extends Throwable>{
         R apply(T t) throws E;
+    }
+
+    public static <T,R,E extends Throwable> Function<T,CompletableFuture<R>> applyOrDie(ExceptionalFunction<T,R,E> ef){
+        return t -> applyOrDie(t, ef);
     }
 
     public static <T,R,E extends Throwable> CompletableFuture<R> applyOrDie(T t, ExceptionalFunction<T,R,E> ef){
