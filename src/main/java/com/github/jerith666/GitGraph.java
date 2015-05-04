@@ -45,10 +45,14 @@ public final class GitGraph {
         final Repository repo = new FileRepositoryBuilder().findGitDir(new File(args[0]))
                                                            .setMustExist(true)
                                                            .build();
-
-        CompletableFuture<Collection<Ref>> commitRefs = findRefsUnder(repo, R_HEADS, R_REMOTES);
-
         RevWalk rw = new RevWalk(repo);
+
+        CompletableFuture<Set<RevCommit>> commitRefs = findRefsUnder(repo, R_HEADS, R_REMOTES)
+                .thenApply(cRefs -> cRefs.stream()
+                                         .map(Ref::getObjectId)
+                                         .map(rw::lookupCommit)
+                                         .collect(toSet()));
+
         CompletableFuture<Set<RevCommit>> tagRefs = findRefsUnder(repo, R_TAGS)
                 .thenCompose(tRefs -> tRefs.stream()
                                            .map(Ref::getObjectId)
@@ -58,9 +62,12 @@ public final class GitGraph {
                                                    (rcs, rc) -> rcs.thenCombine(rc, collectionAdder(HashSet::new)),
                                                    (rcs1, rcs2) -> rcs1.thenCombine(rcs2, collectionCombiner(HashSet::new))));
 
-        commitRefs.thenCompose(refMap -> processSrcCommits(repo, refMap))
-                                    .thenAccept(System.out::println)
-                                    .exceptionally(t -> { System.out.println("failed with: " + t); t.printStackTrace(); return null; } );
+        commitRefs.thenCombine(tagRefs, collectionCombiner(HashSet::new))
+                  .thenCompose(refMap -> processSrcCommits(repo, refMap))
+                  .thenAccept(System.out::println)
+                  .exceptionally(t -> { System.out.println("failed with: " + t);
+                                        t.printStackTrace();
+                                        return null; } );
     }
 
     private static CompletableFuture<Collection<Ref>> findRefsUnder(Repository repo, String... refPrefixes) {
@@ -70,13 +77,8 @@ public final class GitGraph {
                             mapCollapser()).thenApply(Map::values);
     }
 
-    private static CompletableFuture<String> processSrcCommits(Repository repo, Collection<Ref> srcCommitNames){
+    private static CompletableFuture<String> processSrcCommits(Repository repo, Set<RevCommit> srcCommits){
         RevWalk rw = new RevWalk(repo);
-
-        Set<RevCommit> srcCommits = srcCommitNames.stream()
-                                                  .map(Ref::getObjectId)
-                                                  .map(rw::lookupCommit)
-                                                  .collect(toSet());
 
         return reduceStages(srcCommits.stream(),
                             LinkedHashMultimap.create(),
