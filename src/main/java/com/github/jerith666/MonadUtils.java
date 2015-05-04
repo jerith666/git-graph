@@ -10,7 +10,6 @@ import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collector;
 import java.util.stream.Stream;
 
 import com.google.common.collect.LinkedHashMultimap;
@@ -22,11 +21,11 @@ public final class MonadUtils {
         R apply(T t) throws E;
     }
 
-    public static <T,A,R> Collector<T, A, R> toSingleCompletableFuture(){
-        return new Collector<T, A, R>(){
-            
-        };
-    }
+//    public static <T,A,R> Collector<T, A, R> toSingleCompletableFuture(){
+//        return new Collector<T, A, R>(){
+//            
+//        };
+//    }
 
     public static <T,R,E extends Throwable> Function<T,CompletableFuture<R>> applyOrDie(ExceptionalFunction<T,R,E> ef){
         return t -> applyOrDie(t, ef);
