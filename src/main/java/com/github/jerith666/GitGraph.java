@@ -51,6 +51,19 @@ public final class GitGraph {
 
         CompletableFuture<Collection<Ref>> commitRefs = findRefsUnder(Stream.of(R_HEADS, R_REMOTES), repo);
 
+        CompletableFuture<List<Ref>> taggedCommitRefs = findRefsUnder(Stream.of(R_TAGS), repo).thenApply(tRefs -> tRefs.stream()
+                                                                       .map(Ref::getLeaf)
+                                                                       .collect(toList()));
+
+        System.out.println("tag getLeaf refs:");
+        taggedCommitRefs.thenAccept(refs -> refs.stream().forEach(System.out::println))
+                        .exceptionally(t -> {t.printStackTrace(); return null;});
+        //System.exit(0);
+        
+        System.out.println("tag refs:");
+        findRefsUnder(Stream.of(R_TAGS), repo).thenAccept(tags -> tags.stream().forEach(System.out::println));
+        System.exit(0);
+
         RevWalk rw = new RevWalk(repo);
         CompletableFuture<Set<RevCommit>> tagRefs = findRefsUnder(Stream.of(R_TAGS), repo)
                 .thenCompose(tRefs -> tRefs.stream()
@@ -72,7 +85,7 @@ public final class GitGraph {
         return reduceStages(refPrefixes,
                             Collections.emptyMap(),
                             repo.getRefDatabase()::getRefs,
-                            mapCollapser()).thenApply(m -> m.values());
+                            mapCollapser()).thenApply(Map::values);
     }
 
     private static CompletableFuture<String> processSrcCommits(Repository repo, Collection<Ref> srcCommitNames){
