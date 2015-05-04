@@ -52,15 +52,16 @@ public final class GitGraph {
         CompletableFuture<Collection<Ref>> commitRefs = findRefsUnder(Stream.of(R_HEADS, R_REMOTES), repo);
 
         RevWalk rw = new RevWalk(repo);
-        CompletableFuture<Collection<RevCommit>> tagRefs = findRefsUnder(Stream.of(R_TAGS), repo)
+        CompletableFuture<Set<RevCommit>> tagRefs = findRefsUnder(Stream.of(R_TAGS), repo)
                 .thenCompose(tRefs -> tRefs.stream()
                                          .map(Ref::getObjectId)
                                          .map(rw::lookupTag)
                                          .map(applyOrDie(revTag -> rw.peel(revTag)))
                                          .map(cfro -> cfro.thenApply(rw::lookupCommit))
                                          .reduce(completedFuture(emptySet()),
-                                                 (rcs, rc) -> null,
-                                                 (rcs1, rcs2) -> null));
+                                                 (rcs, rc) -> rcs.thenCombine(rc, collectionAdder(HashSet::new)),
+                                                 (rcs1, rcs2) -> rcs1.thenCombine(rcs2, collectionCombiner(HashSet::new))));
+        tagRefs.thenAccept(System.out::println).exceptionally(t -> {t.printStackTrace(); return null;});
 
         commitRefs.thenCompose(refMap -> processSrcCommits(repo, refMap))
                                     .thenAccept(System.out::println)
