@@ -13,6 +13,7 @@ import static org.eclipse.jgit.lib.Repository.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
@@ -47,29 +48,46 @@ public final class GitGraph {
                                                            .setMustExist(true)
                                                            .build();
 
-        reduceStages(Stream.of(R_HEADS, R_REMOTES, R_TAGS),
-                     Collections.emptyMap(),
-                     repo.getRefDatabase()::getRefs,
-                     mapCollapser()).thenCompose(refMap -> processSrcCommits(repo, refMap))
+        CompletableFuture<Collection<Ref>> commitRefs = findRefsUnder(Stream.of(R_HEADS, R_REMOTES), repo);
+
+        RevWalk rw = new RevWalk(repo);
+        /*CompletableFuture<Collection<RevCommit>> tagRefs =*/ findRefsUnder(Stream.of(R_TAGS), repo)
+                .thenApply(tRefs -> tRefs.stream()
+                                         .map(Ref::getObjectId)
+                                         .map(rw::lookupTag)
+                                         .map(applyOrDie(revTag -> rw.peel(revTag)))
+                                         .map(cfro -> cfro.thenApply(rw::lookupCommit))
+                                         .<CompletableFuture<Collection<RevCommit>>>reduce(CompletableFuture.completedFuture(Collections.emptySet()),
+                                                 (CompletableFuture<Collection<RevCommit>> rcs, CompletableFuture<RevCommit> rc) -> null,
+                                                 (CompletableFuture<Collection<RevCommit>> rcs1, CompletableFuture<Collection<RevCommit>> rcs2) -> null));
+
+        commitRefs.thenCompose(refMap -> processSrcCommits(repo, refMap))
                                     .thenAccept(System.out::println)
                                     .exceptionally(t -> { System.out.println("failed with: " + t); t.printStackTrace(); return null; } );
     }
 
-    private static CompletableFuture<String> processSrcCommits(Repository repo, Map<String, Ref> srcCommitNames){
+    private static CompletableFuture<Collection<Ref>> findRefsUnder(Stream<String> refPrefixes, Repository repo) {
+        return reduceStages(refPrefixes,
+                            Collections.emptyMap(),
+                            repo.getRefDatabase()::getRefs,
+                            mapCollapser()).thenApply(m -> m.values());
+    }
+
+    private static CompletableFuture<String> processSrcCommits(Repository repo, Collection<Ref> srcCommitNames){
         RevWalk rw = new RevWalk(repo);
 
         System.out.println("srcCommitNames:");
-        srcCommitNames.entrySet().forEach(System.out::println);
+        srcCommitNames.forEach(System.out::println);
 
-        Set<RevObject> srcObjects = srcCommitNames.values().stream()
+        Set<RevCommit> srcCommits = srcCommitNames.stream()
                                                   .map(Ref::getObjectId)
-                                                  .map(id -> rw.lookupAny(id, -1))
+                                                  .map(rw::lookupCommit)
                                                   .collect(toSet());
-        Set<RevCommit> srcCommits = srcObjects.stream()
-                                              .map(lookupObjectAsCommit(rw))
-                                              .collect(HashSet::new,
-                                                       (commits, nextCommit) -> null,
-                                                       mapCollapser());
+//        Set<RevCommit> srcCommits = srcObjects.stream()
+//                                              .map(lookupObjectAsCommit(rw))
+//                                              .collect(HashSet::new,
+//                                                       (commits, nextCommit) -> ,
+//                                                       mapCollapser());
 
         return reduceStages(srcCommits.stream(),
                             LinkedHashMultimap.create(),
