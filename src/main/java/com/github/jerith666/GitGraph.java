@@ -55,26 +55,32 @@ public final class GitGraph {
                                                                        .map(Ref::getLeaf)
                                                                        .collect(toList()));
 
-        System.out.println("tag getLeaf refs:");
-        taggedCommitRefs.thenAccept(refs -> refs.stream().forEach(System.out::println))
-                        .exceptionally(t -> {t.printStackTrace(); return null;});
+//        System.out.println("tag getLeaf refs:");
+//        taggedCommitRefs.thenAccept(refs -> refs.stream().forEach(System.out::println))
+//                        .exceptionally(t -> {t.printStackTrace(); return null;});
         //System.exit(0);
         
-        System.out.println("tag refs:");
-        findRefsUnder(Stream.of(R_TAGS), repo).thenAccept(tags -> tags.stream().forEach(System.out::println));
-        System.exit(0);
+//        System.out.println("tag refs:");
+//        findRefsUnder(Stream.of(R_TAGS), repo).thenAccept(tags -> tags.stream().forEach(System.out::println))
+//                                              .exceptionally(t -> {t.printStackTrace(); return null;});
+        //System.exit(0);
 
         RevWalk rw = new RevWalk(repo);
         CompletableFuture<Set<RevCommit>> tagRefs = findRefsUnder(Stream.of(R_TAGS), repo)
                 .thenCompose(tRefs -> tRefs.stream()
                                          .map(Ref::getObjectId)
-                                         .map(rw::lookupTag)
-                                         .map(applyOrDie(revTag -> rw.peel(revTag)))
-                                         .map(cfro -> cfro.thenApply(rw::lookupCommit))
+                                         .filter(callingDoesNotThrow(oid -> rw.parseCommit(oid),IncorrectObjectTypeException.class))
+                                         .map(applyOrDie(rw::parseCommit))
+                                         //.map(rw::lookupCommit)
+                                         //.collect(toSet()));
+//                                         .map(applyOrDie(revTag -> rw.peel(revTag)))
+//                                         .map(cfro -> cfro.thenApply(rw::lookupCommit))
                                          .reduce(completedFuture(emptySet()),
                                                  (rcs, rc) -> rcs.thenCombine(rc, collectionAdder(HashSet::new)),
                                                  (rcs1, rcs2) -> rcs1.thenCombine(rcs2, collectionCombiner(HashSet::new))));
-        tagRefs.thenAccept(System.out::println).exceptionally(t -> {t.printStackTrace(); return null;});
+        tagRefs.thenAccept(tagRevCs -> tagRevCs.stream().forEach(System.out::println))
+               .exceptionally(t -> {t.printStackTrace(); return null;});
+        System.exit(0);
 
         commitRefs.thenCompose(refMap -> processSrcCommits(repo, refMap))
                                     .thenAccept(System.out::println)
