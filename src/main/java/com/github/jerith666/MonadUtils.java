@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -48,6 +49,18 @@ public final class MonadUtils {
             m.putAll(m2);
             return m;
          };
+    }
+
+    public static <T,E extends Throwable,ESub extends E> Predicate<T> callingDoesNotThrow(ExceptionalFunction<T,?,E> f, Class<ESub> eType){
+        return t -> {
+            try{
+                f.apply(t);
+                return true;
+            }
+            catch(Throwable e){
+                return ! eType.isAssignableFrom(e.getClass());
+            }
+        };
     }
 
     public static <T,C extends Collection<T>> BiFunction<? super C,T,C> collectionAdder(Supplier<C> s){
