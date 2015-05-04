@@ -2,11 +2,14 @@ package com.github.jerith666;
 
 import static java.util.concurrent.CompletableFuture.*;
 
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
@@ -46,6 +49,14 @@ public final class MonadUtils {
             m.putAll(m2);
             return m;
          };
+    }
+
+    public static <T,C extends Collection<T>> BiFunction<? super C,T,C> collectionAdder(Supplier<C> s){
+        return (c, t) -> {C c3 = s.get(); c3.addAll(c); c3.add(t); return c3;};
+    }
+
+    public static <T,C extends Collection<T>> BiFunction<? super C,? super C,C> collectionCombiner(Supplier<C> s){
+        return (c1, c2) -> {C c3 = s.get(); c3.addAll(c1); c3.addAll(c2); return c3;};
     }
 
     public static <K,V> BinaryOperator<SetMultimap<K,V>> multimapCollapser(){
