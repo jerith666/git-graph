@@ -49,46 +49,25 @@ public final class GitGraph {
                                                            .setMustExist(true)
                                                            .build();
 
-        CompletableFuture<Collection<Ref>> commitRefs = findRefsUnder(Stream.of(R_HEADS, R_REMOTES), repo);
-
-        CompletableFuture<List<Ref>> taggedCommitRefs = findRefsUnder(Stream.of(R_TAGS), repo).thenApply(tRefs -> tRefs.stream()
-                                                                       .map(Ref::getLeaf)
-                                                                       .collect(toList()));
-
-//        System.out.println("tag getLeaf refs:");
-//        taggedCommitRefs.thenAccept(refs -> refs.stream().forEach(System.out::println))
-//                        .exceptionally(t -> {t.printStackTrace(); return null;});
-        //System.exit(0);
-        
-//        System.out.println("tag refs:");
-//        findRefsUnder(Stream.of(R_TAGS), repo).thenAccept(tags -> tags.stream().forEach(System.out::println))
-//                                              .exceptionally(t -> {t.printStackTrace(); return null;});
-        //System.exit(0);
+        CompletableFuture<Collection<Ref>> commitRefs = findRefsUnder(repo, R_HEADS, R_REMOTES);
 
         RevWalk rw = new RevWalk(repo);
-        CompletableFuture<Set<RevCommit>> tagRefs = findRefsUnder(Stream.of(R_TAGS), repo)
+        CompletableFuture<Set<RevCommit>> tagRefs = findRefsUnder(repo, R_TAGS)
                 .thenCompose(tRefs -> tRefs.stream()
-                                         .map(Ref::getObjectId)
-                                         .filter(callingDoesNotThrow(oid -> rw.parseCommit(oid),IncorrectObjectTypeException.class))
-                                         .map(applyOrDie(rw::parseCommit))
-                                         //.map(rw::lookupCommit)
-                                         //.collect(toSet()));
-//                                         .map(applyOrDie(revTag -> rw.peel(revTag)))
-//                                         .map(cfro -> cfro.thenApply(rw::lookupCommit))
-                                         .reduce(completedFuture(emptySet()),
-                                                 (rcs, rc) -> rcs.thenCombine(rc, collectionAdder(HashSet::new)),
-                                                 (rcs1, rcs2) -> rcs1.thenCombine(rcs2, collectionCombiner(HashSet::new))));
-        tagRefs.thenAccept(tagRevCs -> tagRevCs.stream().forEach(System.out::println))
-               .exceptionally(t -> {t.printStackTrace(); return null;});
-        System.exit(0);
+                                           .map(Ref::getObjectId)
+                                           .filter(callingDoesNotThrow(oid -> rw.parseCommit(oid),IncorrectObjectTypeException.class))
+                                           .map(applyOrDie(rw::parseCommit))
+                                           .reduce(completedFuture(emptySet()),
+                                                   (rcs, rc) -> rcs.thenCombine(rc, collectionAdder(HashSet::new)),
+                                                   (rcs1, rcs2) -> rcs1.thenCombine(rcs2, collectionCombiner(HashSet::new))));
 
         commitRefs.thenCompose(refMap -> processSrcCommits(repo, refMap))
                                     .thenAccept(System.out::println)
                                     .exceptionally(t -> { System.out.println("failed with: " + t); t.printStackTrace(); return null; } );
     }
 
-    private static CompletableFuture<Collection<Ref>> findRefsUnder(Stream<String> refPrefixes, Repository repo) {
-        return reduceStages(refPrefixes,
+    private static CompletableFuture<Collection<Ref>> findRefsUnder(Repository repo, String... refPrefixes) {
+        return reduceStages(Stream.of(refPrefixes),
                             Collections.emptyMap(),
                             repo.getRefDatabase()::getRefs,
                             mapCollapser()).thenApply(Map::values);
