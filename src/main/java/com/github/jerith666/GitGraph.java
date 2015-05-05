@@ -1,6 +1,7 @@
 package com.github.jerith666;
 
 import static com.github.jerith666.MonadUtils.*;
+import static com.google.common.collect.Lists.*;
 import static com.google.common.collect.Maps.*;
 import static com.nurkiewicz.typeof.TypeOf.*;
 import static java.util.Arrays.*;
@@ -109,13 +110,12 @@ public final class GitGraph {
                                              Set<RevCommit> plotted,
                                              SetMultimap<ObjectId, String> refNames){
         Set<GraphEntity> entities = new LinkedHashSet<>();
-        List<Pair<RevCommit,List<RevCommit>>> toPlot = new ArrayList<>(singletonList(new Pair<>(srcCommit, new ArrayList<>())));
+        Deque<Pair<RevCommit,List<RevCommit>>> toPlot = new LinkedList<>(singletonList(new Pair<>(srcCommit, new ArrayList<>())));
 
         while(!toPlot.isEmpty()){
-            Pair<RevCommit, List<RevCommit>> nextData = toPlot.get(0);
+            Pair<RevCommit, List<RevCommit>> nextData = toPlot.removeFirst();
             RevCommit commit = nextData._t;
             List<RevCommit> boring = nextData._u;
-            toPlot = toPlot.subList(1, toPlot.size());
 
             if(plotted.contains(commit)){
                 continue;
@@ -148,7 +148,8 @@ public final class GitGraph {
                 parentsToPlot.add(0, new Pair<>(parent, boring));
             }
 
-            toPlot.addAll(0, parentsToPlot);
+            //simulate Deque.addAllFirst()
+            reverse(parentsToPlot).forEach(toPlot::addFirst);
 
             if(commit.getParents().length == 0 && !boring.isEmpty()){
                 entities.addAll(makeElision(boring, null));
