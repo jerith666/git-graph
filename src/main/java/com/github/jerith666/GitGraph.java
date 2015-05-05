@@ -278,8 +278,6 @@ public final class GitGraph {
     }
 
     private static SetMultimap<RevCommit, RevCommit> findChildren(RevCommit srcCommit, RevWalk rw) throws MissingObjectException, IncorrectObjectTypeException, IOException{
-        boolean debug = srcCommit.getId().name().equalsIgnoreCase("6c4573d784caa3356678c8fbb71350225f0b7e4f");
-        System.out.println("findChildren: " + srcCommit + "; debug = " + debug);
         SetMultimap<RevCommit, RevCommit> children = LinkedHashMultimap.create();
         Set<RevCommit> visited = new LinkedHashSet<RevCommit>();
 
@@ -288,9 +286,6 @@ public final class GitGraph {
 
         while(!commits.isEmpty()){
             ObjectId commitId = commits.pop().getId();
-            if(debug){
-                System.out.println(" commitId: " + commitId);
-            }
             RevCommit commit = parseAsCommit(rw, commitId);
 
             if(visited.contains(commit)){
@@ -301,9 +296,6 @@ public final class GitGraph {
             asList(commit.getParents())
             .forEach(parent -> {
                 children.put(parent, commit);
-                if(debug){
-                    System.out.println("  " + commit + " --parent--> " + parent);
-                }
                 commits.push(parent);
             });
         }
