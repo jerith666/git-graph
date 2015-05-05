@@ -63,7 +63,7 @@ public final class GitGraph {
                                                    (rcs1, rcs2) -> rcs1.thenCombine(rcs2, collectionCombiner(HashSet::new))));
 
         commitRefs.thenCombine(tagRefs, collectionCombiner(HashSet::new))
-                  .thenCompose(refMap -> processSrcCommits(repo, refMap))
+                  .thenCompose(refMap -> processSrcCommits(repo, rw, refMap))
                   .thenAccept(System.out::println)
                   .exceptionally(t -> { System.out.println("failed with: " + t);
                                         t.printStackTrace();
@@ -77,9 +77,7 @@ public final class GitGraph {
                             mapCollapser()).thenApply(Map::values);
     }
 
-    private static CompletableFuture<String> processSrcCommits(Repository repo, Set<RevCommit> srcCommits){
-        RevWalk rw = new RevWalk(repo);
-
+    private static CompletableFuture<String> processSrcCommits(Repository repo, RevWalk rw, Set<RevCommit> srcCommits){
         return reduceStages(srcCommits.stream(),
                             LinkedHashMultimap.create(),
                             c -> findChildren(c, rw),
