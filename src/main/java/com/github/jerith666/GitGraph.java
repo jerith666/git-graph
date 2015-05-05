@@ -263,9 +263,9 @@ public final class GitGraph {
                    edge.getChild().name() + "\"";//TODO weight, color [weight=#{edge_weight(interesting_commit,boring_commits.first)} #{color(interesting_commit)}];");
         }
         else{
-            return "\"" + edge.getChild().getId().name() +
+            return "\"" + edge.getParent().getId().name() +
                    "\" -> \"" +
-                   edge.getParent().getId().name() + "\"";//TODO weight, color
+                   edge.getChild().getId().name() + "\"";//TODO weight, color
         }
     }
 
