@@ -6,11 +6,15 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collector;
+import java.util.stream.Collector.Characteristics;
 import java.util.stream.Stream;
 
 import com.google.common.collect.LinkedHashMultimap;
@@ -86,5 +90,27 @@ public final class MonadUtils {
         return source.map(s -> applyOrDie(s, stageCreator))
                      .reduce(completedFuture(identity),
                              (s1, s2) -> s1.thenCombine(s2, stageAccumulator));
+    }
+
+    public static <T, A, R> Collector<CompletableFuture<T>, ?, CompletableFuture<R>> cfCollector(Supplier<A> supplier,
+                                                                                                 BiConsumer<A,T> accumulator,
+                                                                                                 BinaryOperator<A> combiner,
+                                                                                                 Function<A,R> finisher,
+                                                                                                 Characteristics... characteristics){
+        return Collector.of(() -> new AtomicReference<>(completedFuture(supplier.get())),
+                            (arcf, cft) -> {
+                                arcf.getAndUpdate(cfa -> cfa.thenCombine(cft,
+                                                                         (a, t) -> {
+                                                                             accumulator.accept(a, t);
+                                                                             return a;
+                                                                         }));
+                            },
+                            (arcf1, arcf2) -> {
+                                arcf1.getAndUpdate(cf1 -> cf1.thenCombine(arcf2.get(),
+                                                                          combiner));
+                                return arcf1;
+                            },
+                            (AtomicReference<CompletableFuture<A>> arcf) -> arcf.get().thenApply(finisher),
+                            characteristics);
     }
 }
