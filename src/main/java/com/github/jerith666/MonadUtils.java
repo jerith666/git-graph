@@ -33,14 +33,14 @@ public final class MonadUtils {
     }
 
     public static <T,R,E extends Throwable> CompletableFuture<R> applyOrDie(T t, ExceptionalFunction<T,R,E> ef){
-        CompletableFuture<R> cf = new CompletableFuture<R>();
         try{
-            cf.complete(ef.apply(t));
+            return completedFuture(ef.apply(t));
         }
         catch(Throwable e){
+            CompletableFuture<R> cf = new CompletableFuture<R>();
             cf.completeExceptionally(e);
+            return cf;
         }
-        return cf;
     }
 
     public static <K,V> BinaryOperator<Map<K,V>> mapCollapser(){
