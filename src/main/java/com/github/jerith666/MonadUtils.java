@@ -97,6 +97,10 @@ public final class MonadUtils {
                                                                                                  BinaryOperator<A> combiner,
                                                                                                  Function<A,R> finisher,
                                                                                                  Characteristics... characteristics){
+        /* the intermediate accumulator type of this collector is
+         * AtomicReference<CompletableFuture<A>>. this is necessary because the
+         * accumulator type has to be mutable, and CompletableFuture can't be
+         * recompleted */
         return Collector.of(() -> new AtomicReference<>(completedFuture(supplier.get())),
                             (arcf, cft) -> {
                                 arcf.getAndUpdate(cfa -> cfa.thenCombine(cft,
