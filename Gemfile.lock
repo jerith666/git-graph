@@ -1,0 +1,23 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    charlock_holmes (0.7.5)
+    diff-lcs (1.3)
+    fast_xs (0.8.0)
+    gitlab-grit (2.8.1)
+      charlock_holmes (~> 0.6)
+      diff-lcs (~> 1.1)
+      mime-types (>= 1.16, < 3)
+      posix-spawn (~> 0.3)
+    mime-types (2.99.3)
+    posix-spawn (0.3.13)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  fast_xs
+  gitlab-grit
+
+BUNDLED WITH
+   1.15.1

@@ -2,4 +2,5 @@
 *.dot
 *.png
 *.svg
-/Gemfile.lock
+result
+.bundle
